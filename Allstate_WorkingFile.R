@@ -37,15 +37,15 @@ train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G)
 train.purchase<-train[which(train$record_type==1),]
 
 #Adding last plan shopped to train.purchase data frame
-train.purchase$lastShoppingPoint<-train.purchase$shopping_pt-1
+train.purchase$lastQuotePoint<-train.purchase$shopping_pt-1
 lookup<-train[c("customer_ID","shopping_pt","planCombo")]
-train.purchase<-merge(x=train.purchase,y=lookup,by.x=c("lastShoppingPoint","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+train.purchase<-merge(x=train.purchase,y=lookup,by.x=c("lastQuotePoint","customer_ID"),by.y=c("shopping_pt","customer_ID"))
 #cleaning up train.purchase dataframe
 names(train.purchase)[names(train.purchase)=='planCombo.x']<-"planCombo"
-names(train.purchase)[names(train.purchase)=='planCombo.y']<-"lastShoppedPlan"
+names(train.purchase)[names(train.purchase)=='planCombo.y']<-"lastQuotedPlan"
 train.purchase<-train.purchase[order(train.purchase$customer_ID),]
 #table of who bought the last plan shopped
-table(train.purchase$planCombo==train.purchase$lastShoppedPlan)
+table(train.purchase$planCombo==train.purchase$lastQuotedPlan)
 
 # of unique Customers in train set - All purchase a plan
 length(unique(train$customer_ID))
