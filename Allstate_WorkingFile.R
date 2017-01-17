@@ -47,6 +47,7 @@ train.purchase<-train.purchase[order(train.purchase$customer_ID),]
 #table of who bought the last plan shopped
 table(train.purchase$planCombo==train.purchase$lastQuotedPlan)
 
+
 # of unique Customers in train set - All purchase a plan
 length(unique(train$customer_ID))
 #97009
@@ -58,6 +59,9 @@ length(unique(train$planCombo))
 # of unique plans purchased in train set
 length(unique(train.purchase$planCombo))
 #1522
+
+#top 10 plans purchased.
+top10plans<-data.frame("count"=(sort(table(train.purchase$planCombo),decreasing=TRUE)[1:10]))
 
 # distribution of shopping point for purchased plans
 hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,main = "Purchase Shopping Point")
