@@ -1,8 +1,45 @@
 #PRED 454 Advances Modeling
 #Allstate Purchase Prediction Challenge
 
-library(lattice)
-library(data.table)
+# Install Packages if they don't current exist
+list.of.packages <- c("doBy"
+                      ,"lazyeval"
+                      ,"psych"
+                      ,"lars"
+                      ,"GGally"
+                      ,"ggplot2"
+                      ,"grid"
+                      ,"gridExtra"
+                      ,"corrgram"
+                      ,"corrplot"
+                      ,"leaps"
+                      ,"glmnet"
+                      ,"MASS"
+                      ,"gbm"
+                      ,"tree"
+                      ,"rpart"
+                      ,"rpart.plot"
+                      ,"rattle"
+                      ,"gam"
+                      ,"class"
+                      ,"e1071"
+                      ,"randomForest"
+                      ,"doParallel"
+                      ,"iterators"
+                      ,"foreach"
+                      ,"parallel"
+                      ,"lattice"
+                      ,"caret"
+                      ,"data.table")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+# Load all packages
+lapply(list.of.packages, require, character.only = TRUE)
+
+#library(lattice)
+#library(data.table)
 #data.table cheat sheet.
 #https://s3.amazonaws.com/assets.datacamp.com/img/blog/data+table+cheat+sheet.pdf
 
