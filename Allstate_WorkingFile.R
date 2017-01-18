@@ -1,6 +1,7 @@
 #PRED 454 Advances Modeling
 #Allstate Purchase Prediction Challenge
 
+#Sherman Test Commit via RStudio
 # Install Packages if they don't current exist
 list.of.packages <- c("doBy"
                       ,"lazyeval"
