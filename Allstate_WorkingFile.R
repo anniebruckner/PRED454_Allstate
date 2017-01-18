@@ -12,7 +12,7 @@ path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
-test <- read.csv(file.path(path,"test.csv"), stringsAsFactors=TRUE)
+test <- read.csv(file.path(path,"test_v2.csv"), stringsAsFactors=TRUE)
 
 attach(train)
 par(mfrow=c(3,3))
