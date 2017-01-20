@@ -31,7 +31,8 @@ list.of.packages <- c("doBy"
                       ,"parallel"
                       ,"lattice"
                       ,"caret"
-                      ,"data.table")
+                      ,"data.table"
+                      ,"plyr")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -46,14 +47,18 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 
 # set to your local directory. We will each have to edit this line of code.
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState"
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState #paulpath
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
-test <- read.csv(file.path(path,"test.csv"), stringsAsFactors=TRUE)
+test <- read.csv(file.path(path,"test_v2.csv"), stringsAsFactors=TRUE)
 
 attach(train)
 par(mfrow=c(3,3))
+
+#freq table for each purchase option
+apply(train[18:24],2,FUN = count)
 
 #creating histogram for each purchase option
 my_hist<-function(variable)
