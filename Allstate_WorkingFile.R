@@ -112,3 +112,17 @@ hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,main = "Purch
 #Exploring the components of a plan against variables
 # histogram(~ A+B+C +D+E+F+G| car_value, data = train.purchase)
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
+
+#can't get the below function to work, trying to plot hist for each a variable for each purchase option
+my_hist2<-function(variable)
+{
+  x <- get(variable)
+  ggplot(train.purchase,aes(x=day))+geom_histogram()+facet_grid(~x)
+  #h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
+}
+apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
+
+#correlation matrix for numeric variables
+cormat = cor(train[c(2:4,7:10,12:17)], use="na.or.complete")
+cormat_table <- as.data.frame(as.table(cormat))
+cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
