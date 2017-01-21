@@ -65,6 +65,8 @@ my_hist<-function(variable)
   h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
 }
 apply(X = array(names(train)[18:24]),MARGIN =1,FUN = my_hist)
+detach(train)
+
 
 # summary statistics
 summary(train)
@@ -123,7 +125,6 @@ histogram(~ C | car_value, data = train.purchase)
 
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
 
-<<<<<<< HEAD
 #Frequency of policy Option by state
 A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1)
 B_Freq<-prop.table(table(train.purchase$state,train.purchase$B),1)
@@ -145,6 +146,8 @@ my_hist2<-function(variable)
   #h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
 }
 apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
+
+
 
 #correlation matrix for numeric variables
 cormat = cor(train[c(2:4,7:10,12:17)], use="na.or.complete")
