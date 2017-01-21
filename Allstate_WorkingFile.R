@@ -39,8 +39,6 @@ if(length(new.packages)) install.packages(new.packages)
 # Load all packages
 lapply(list.of.packages, require, character.only = TRUE)
 
-#library(lattice)
-#library(data.table)
 #data.table cheat sheet.
 #https://s3.amazonaws.com/assets.datacamp.com/img/blog/data+table+cheat+sheet.pdf
 
@@ -102,8 +100,34 @@ length(unique(train.purchase$planCombo))
 top10plans<-data.frame("count"=(sort(table(train.purchase$planCombo),decreasing=TRUE)[1:10]))
 
 # distribution of shopping point for purchased plans
-hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,main = "Purchase Shopping Point")
+hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,xlab = "Purchase Shopping Point",
+     main = "Purchase Point - Training Set")
+
+# distribution of shopping point for purchased plans
+hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,xlab = "Purchase Shopping Point",
+     main = "Purchase Shopping Point - Training Set")
+maxShoppingPoint.test<-aggregate(test$shopping_pt, by = list(test$customer_ID), max)
+hist(as.numeric((maxShoppingPoint.test$x)),col="blue",breaks=20,xlab = "Max Shopping Point",
+     main = "Max Shopping Point - Test Set")
+
 
 #Exploring the components of a plan against variables
-# histogram(~ A+B+C +D+E+F+G| car_value, data = train.purchase)
+histogram(~ A+B+C+D+E+F+G | car_value, data = train.purchase)
+histogram(~ C | car_value, data = train.purchase)
+
+
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
+
+#Frequency of policy Option by state
+A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1)
+B_Freq<-prop.table(table(train.purchase$state,train.purchase$B),1)
+C_Freq<-prop.table(table(train.purchase$state,train.purchase$C),1)
+D_Freq<-prop.table(table(train.purchase$state,train.purchase$D),1)
+E_Freq<-prop.table(table(train.purchase$state,train.purchase$E),1)
+F_Freq<-prop.table(table(train.purchase$state,train.purchase$F),1)
+G_Freq<-prop.table(table(train.purchase$state,train.purchase$G),1)
+#Stack bar graph
+plot(F_Freq)
+plot(G_Freq)
+
+
