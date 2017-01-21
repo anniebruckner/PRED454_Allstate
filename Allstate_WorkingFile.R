@@ -31,7 +31,8 @@ list.of.packages <- c("doBy"
                       ,"parallel"
                       ,"lattice"
                       ,"caret"
-                      ,"data.table")
+                      ,"data.table"
+                      ,"plyr")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -44,7 +45,8 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 
 # set to your local directory. We will each have to edit this line of code.
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState"
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState #paulpath
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
@@ -52,6 +54,9 @@ test <- read.csv(file.path(path,"test_v2.csv"), stringsAsFactors=TRUE)
 
 attach(train)
 par(mfrow=c(3,3))
+
+#freq table for each purchase option
+apply(train[18:24],2,FUN = count)
 
 #creating histogram for each purchase option
 my_hist<-function(variable)
@@ -118,6 +123,7 @@ histogram(~ C | car_value, data = train.purchase)
 
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
 
+<<<<<<< HEAD
 #Frequency of policy Option by state
 A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1)
 B_Freq<-prop.table(table(train.purchase$state,train.purchase$B),1)
@@ -131,3 +137,16 @@ plot(F_Freq)
 plot(G_Freq)
 
 
+#can't get the below function to work, trying to plot hist for each a variable for each purchase option
+my_hist2<-function(variable)
+{
+  x <- get(variable)
+  ggplot(train.purchase,aes(x=day))+geom_histogram()+facet_grid(~x)
+  #h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
+}
+apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
+
+#correlation matrix for numeric variables
+cormat = cor(train[c(2:4,7:10,12:17)], use="na.or.complete")
+cormat_table <- as.data.frame(as.table(cormat))
+cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
