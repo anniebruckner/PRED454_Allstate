@@ -31,7 +31,8 @@ list.of.packages <- c("doBy"
                       ,"lattice"
                       ,"caret"
                       ,"data.table"
-                      ,"plyr")
+                      ,"plyr"
+					  ,"maps")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -65,6 +66,84 @@ my_hist<-function(variable)
 }
 apply(X = array(names(train)[18:24]),MARGIN =1,FUN = my_hist)
 detach(train)
+
+#####Begin Data Description - DT 1/22/17
+#Graphing policy shoppers by state
+
+#load state codes csv file
+state_codes <- read.csv(file.choose())
+#head(state_codes)
+
+state_df <- as.data.frame(table(state)) #turn state data into DF for manipulating purposes
+state_df$postal_code <- state_df$state #rename column for easy merging below
+#head(state_df)
+
+#merge state data frame with frequency counts and postal codes to get state names
+state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE)
+#head(state_combo)
+
+#merge state_combo with state plotting data
+names(state_combo)[names(state_combo)=="state.x"] <- "region"
+state_combo$region<-tolower(state_combo$region) #done for merging on region to work
+state_total <- merge(all_states,state_combo, by="region", all=TRUE)
+#head(state_total)
+
+#construct map graph
+state_total <- state_total[order(state_total$order),]
+p <- ggplot()
+p <- p + geom_polygon(data=state_total, aes(x=long, y=lat, group = group, fill=state_total$Freq),colour="grey70"
+) + scale_fill_continuous(low = "aliceblue", high = "darkblue", na.value="ivory",guide="colorbar")
+P1 <- p + theme_bw()  + labs(fill = "Number of Records" 
+                             ,title = "Policy Shoppers by State", x="", y="")
+P1 + scale_y_continuous(breaks=c()) + scale_x_continuous(breaks=c()) + theme(panel.border =  element_blank())
+
+###
+#Graphical Distributions of Variables
+par.default <- par() #save in case needed later
+par(mfrow=c(1,2)) #fit more graphs
+#barplots for predictor variables
+par(mfrow=c(1,2)); ylab.box <- "Number of Records"; col.bar = "dodgerblue4" 
+barplot(table(car_value),main="Frequency by Car Values (New)",ylab=ylab.box,xlab="Car Value Categories",col=col.bar)
+barplot(table(day),main="Frequency of Site Visits by Day",ylab=ylab.box,xlab="Day (0=Monday,...,6=Sunday)",col=col.bar)
+barplot(table(C_previous),main="Frequency by Policy Option C",ylab=ylab.box,xlab="Policy Option C Choices (0=nothing)",col=col.bar)
+barplot(table(record_type),main="Frequency of Record Types",ylab=ylab.box,xlab="0 = Shopping Point, 1 = Purchase Point",col=col.bar)
+barplot(table(homeowner),main="Frequency by Homeowner", ylab=ylab.box,xlab="0 = Not Homeowner, 1 = Homeowner",col=col.bar)
+barplot(table(married_couple),main="Frequency by Marital Status",ylab=ylab.box,xlab="0 = Married, 1 = Not Married",col=col.bar)
+barplot(table(risk_factor),main="Frequency by Risk Factor",ylab=ylab.box,xlab="Risk Factor Levels",col=col.bar)
+barplot(table(shopping_pt),main="Frequency by Shopping Point",ylab=ylab.box,xlab="Shopping Point Depth",col=col.bar)
+barplot(table(time),main="Frequency of Site Visits by Time of Day",ylab=ylab.box,xlab="Time (HH:MM)",col=col.bar,border=NA)
+
+#histograms for predictor variables
+col.hist = "dodgerblue4" 
+hist(car_age,xlab="Age of Car (Years)", main="Frequency by Age of Car",col=col.hist)
+hist(age_oldest,xlab="Age of Oldest Person in Group", main="Frequency by Oldest Age",col=col.hist)
+hist(age_youngest,xlab="Age of Youngest Person in Group", main="Frequency by Youngest Age",col=col.hist)
+hist(cost,xlab="Cost (Dollars)", main="Frequency by Cost of Coverage Options",col=col.hist)
+hist(duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=col.hist)
+
+
+#barplots for response variables
+xlab.policy = "Policy Options"; par(mfrow=c(1,4))
+
+barplot(table(A),main="Frequency for Option A",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(B),main="Frequency for Option B",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(C),main="Frequency for Option C",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(D),main="Frequency for Option D",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+par(mfrow=c(1,3))
+barplot(table(E),main="Frequency for Option E",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(F),main="Frequency for Option F",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(G),main="Frequency for Option G",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+
+
+#look at 5 number summaries
+lapply(train, summary)
+
+#consider outliers in select variables
+col.box = "dodgerblue4"
+bxp.shopping_pt <- boxplot(shopping_pt,main="Box Plot of Shopping Points", ylab="Shopping Point", col=col.box)
+bxp.car_age <- boxplot(car_age,main="Box Plot of Car Age", ylab="Car Age (Years)", col=col.box)
+bxp.cost <- boxplot(cost,main="Box Plot of Policy Option Cost", ylab="Cost (Dollars)", col=col.box)
+#####End Data Description - DT 1/22/17
 
 
 # summary statistics
