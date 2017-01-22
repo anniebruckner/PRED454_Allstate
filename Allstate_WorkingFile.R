@@ -1,7 +1,6 @@
 #PRED 454 Advances Modeling
 #Allstate Purchase Prediction Challenge
 
-#Sherman Test Commit via RStudio
 # Install Packages if they don't current exist
 list.of.packages <- c("doBy"
                       ,"lazyeval"
@@ -148,8 +147,32 @@ my_hist2<-function(variable)
 apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
 
 
+ddply(train,~customer_ID,summarise,mean=mean(group_size))
+train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
+                                  "age_youngest","married_couple","C_previous","duration_previous")])
+
+#add numeric factors in place of categorical for correlation analysis
+train_cp = train
+
+state_factor = as.factor(train[,c("state")])
+state_ranks <- rank(-table(state_factor), ties.method="first")
+train_cp$state_num <- data.frame(category=state_factor, rank=state_ranks[as.character(state_factor)])$rank
+
+car_value_factor = as.factor(train[,c("car_value")])
+car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
+train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
 
 #correlation matrix for numeric variables
-cormat = cor(train[c(2:4,7:10,12:17)], use="na.or.complete")
+cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
 cormat_table <- as.data.frame(as.table(cormat))
-cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
+cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
+write.csv(cormat_table, "cormat_table.csv")
+
+#PCA
+train.pca <- prcomp(na.omit(train_cp[c(2:4,7:10,12:17,27:28)]),center = TRUE,scale. = TRUE)
+print(train.pca)
+summary(train.pca)
+plot(train.pca, type="l")
+
+write.csv(train.pca$rotation,"pca.csv")
+
