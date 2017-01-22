@@ -110,10 +110,10 @@ hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,xlab = "Purch
      main = "Purchase Point - Training Set")
 
 # distribution of shopping point for purchased plans
-hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,xlab = "Purchase Shopping Point",
+hist(as.numeric((train.purchase$shopping_pt)),col="darkblue",breaks=20,xlab = "Purchase Shopping Point",
      main = "Purchase Shopping Point - Training Set")
 maxShoppingPoint.test<-aggregate(test$shopping_pt, by = list(test$customer_ID), max)
-hist(as.numeric((maxShoppingPoint.test$x)),col="blue",breaks=20,xlab = "Max Shopping Point",
+hist(as.numeric((maxShoppingPoint.test$x)),col="darkblue",breaks=20,xlab = "Max Shopping Point",
      main = "Max Shopping Point - Test Set")
 
 
