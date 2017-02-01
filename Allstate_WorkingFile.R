@@ -265,5 +265,11 @@ model.lda1 <- lda(x ~ y,data.train)
 # but in practice it often is if the goal is simply to find a good predictive model
 post.valid.lda1 <- predict(model.lda1, data.train)$posterior[,2] 
 
-
-
+###################
+# QDA Classification Example 
+###################
+### This is not working code, just here for an example on how to run LDA in R. #PB
+qda.fit=qda(x ~ y,data.train)
+qda.fit
+qda.class=predict(qda.fit,data.validation)$class 
+table(qda.class ,data.test$response)
