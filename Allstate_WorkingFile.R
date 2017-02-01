@@ -255,6 +255,24 @@ plot(train.pca, type="l")
 
 write.csv(train.pca$rotation,"pca.csv")
 
+
+# 75/25 train/validation split            #PB
+n <-dim(train.purchase)[1] # sample size = 97009 customers purchase a policy
+set.seed(1233) # set random number generator seed to enable
+# repeatability of results
+valid <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase$part<-0
+train.purchase$part[-valid] <-"train"
+train.purchase$part[valid]  <-"valid"
+table(train.purchase$part)
+
+# add variable "part" to the full training data set
+lookup<-train.purchase[c("customer_ID","part")]
+train<-merge(x=train,y=lookup,by="customer_ID")
+
+
+
+
 ###################
 # LDA Classification Example 
 ###################
