@@ -55,6 +55,21 @@ path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
 test <- read.csv(file.path(path,"test_v2.csv"), stringsAsFactors=TRUE)
 
+# setting variable types, please feel free to change if you think this is incorrect. #PB
+# sapply(train,FUN = class)
+train$day<-as.factor(train$day)
+train$location<-as.factor(train$location)
+train$car_value<-as.factor(train$car_value)
+train$location<-as.factor(train$location)
+train$A<-as.factor(train$A)
+train$B<-as.factor(train$B)
+train$C<-as.factor(train$C)
+train$D<-as.factor(train$D)
+train$E<-as.factor(train$E)
+train$F<-as.factor(train$F)
+train$G<-as.factor(train$G)
+# sapply(train,FUN = class)
+
 
 
 #####################################
@@ -163,54 +178,10 @@ summary(train)
 
 
 #Creating planCombo variable for plan total #PB
-train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G)
+train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G,sep="")
 
 #creating a dataframe of purchased records #PB
 train.purchase<-train[which(train$record_type==1),]
-
-#Adding previous quorted plans to train.purchase data frame #PB
-train.purchase$purchaseMinus_1<-train.purchase$shopping_pt-1
-train.purchase$purchaseMinus_2<-train.purchase$shopping_pt-2
-train.purchase$purchaseMinus_3<-train.purchase$shopping_pt-3
-train.purchase$purchaseMinus_4<-train.purchase$shopping_pt-4
-
-#purchase minus 1 quote
-lookup<-train[c("customer_ID","shopping_pt","planCombo")]
-train.purchase<-merge(x=train.purchase,y=lookup,by.x=c("purchaseMinus_1","customer_ID"),by.y=c("shopping_pt","customer_ID"))
-#cleaning up train.purchase dataframe
-names(train.purchase)[names(train.purchase)=='planCombo.x']<-"planCombo"
-names(train.purchase)[names(train.purchase)=='planCombo.y']<-"lastQuotedPlan"
-
-#purchase minus 2 quote
-train.purchase<-merge(x=train.purchase,y=lookup,by.x=c("purchaseMinus_2","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
-#cleaning up train.purchase dataframe
-names(train.purchase)[names(train.purchase)=='planCombo.x']<-"planCombo"
-names(train.purchase)[names(train.purchase)=='planCombo.y']<-"QuoteMinus_2"
-
-#purchase minus 3 quote
-train.purchase<-merge(x=train.purchase,y=lookup,by.x=c("purchaseMinus_3","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
-#cleaning up train.purchase dataframe
-names(train.purchase)[names(train.purchase)=='planCombo.x']<-"planCombo"
-names(train.purchase)[names(train.purchase)=='planCombo.y']<-"QuoteMinus_3"
-
-#purchase minus 4 quote
-train.purchase<-merge(x=train.purchase,y=lookup,by.x=c("purchaseMinus_4","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
-#cleaning up train.purchase dataframe
-names(train.purchase)[names(train.purchase)=='planCombo.x']<-"planCombo"
-names(train.purchase)[names(train.purchase)=='planCombo.y']<-"QuoteMinus_4"
-
-#Cleaning up the train.purchsase data frame
-train.purchase$QuoteMinus_3[is.na(train.purchase$QuoteMinus_3)]<-"NA"
-train.purchase$QuoteMinus_4[is.na(train.purchase$QuoteMinus_4)]<-"NA"
-train.purchase<-train.purchase[order(train.purchase$customer_ID),]
-#removing unneccessary variables
-train.purchase$purchaseMinus_1 <- NULL
-train.purchase$purchaseMinus_2 <- NULL
-train.purchase$purchaseMinus_3 <- NULL
-train.purchase$purchaseMinus_4 <- NULL
-
-#table of who bought the last plan shopped
-table(train.purchase$planCombo==train.purchase$lastQuotedPlan)
 
 # of unique Customers in train set - All purchase a plan
 length(unique(train$customer_ID))
@@ -254,7 +225,7 @@ D_Freq<-prop.table(table(train.purchase$state,train.purchase$D),1)
 E_Freq<-prop.table(table(train.purchase$state,train.purchase$E),1)
 F_Freq<-prop.table(table(train.purchase$state,train.purchase$F),1)
 G_Freq<-prop.table(table(train.purchase$state,train.purchase$G),1)
-#Stack bar graph
+#Stack bar graph for interesting relationships
 plot(F_Freq)
 plot(G_Freq)
 
@@ -299,21 +270,87 @@ plot(train.pca, type="l")
 write.csv(train.pca$rotation,"pca.csv")
 
 #####################################
+## data manipulation for Model Build ## 
+#####################################
+#PB
+
+train.purchase.m<-train.purchase
+
+
+#Adding previous quorted plans to train.purchase.m data frame #PB
+train.purchase.m$purchaseMinus_1<-train.purchase.m$shopping_pt-1
+train.purchase.m$purchaseMinus_2<-train.purchase.m$shopping_pt-2
+train.purchase.m$purchaseMinus_3<-train.purchase.m$shopping_pt-3
+train.purchase.m$purchaseMinus_4<-train.purchase.m$shopping_pt-4
+
+#purchase minus 1 quote
+lookup<-train[c("customer_ID","shopping_pt","planCombo")]
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_1","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"lastQuotedPlan"
+
+#purchase minus 2 quote
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_2","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"QuoteMinus_2"
+
+#purchase minus 3 quote
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_3","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"QuoteMinus_3"
+
+#purchase minus 4 quote
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_4","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"QuoteMinus_4"
+
+#Cleaning up the train.purchsase data frame
+train.purchase.m$QuoteMinus_3[is.na(train.purchase.m$QuoteMinus_3)]<-"NA"
+train.purchase.m$QuoteMinus_4[is.na(train.purchase.m$QuoteMinus_4)]<-"NA"
+train.purchase.m<-train.purchase.m[order(train.purchase.m$customer_ID),]
+#removing unneccessary variables
+train.purchase.m$purchaseMinus_1 <- NULL
+train.purchase.m$purchaseMinus_2 <- NULL
+train.purchase.m$purchaseMinus_3 <- NULL
+train.purchase.m$purchaseMinus_4 <- NULL
+
+#table of who bought the last plan shopped
+table(train.purchase.m$planCombo==train.purchase.m$lastQuotedPlan)
+
+#last quoted A
+train.purchase.m$lastQuoted_A<-substring(train.purchase.m$lastQuotedPlan,first=1,last=1)
+
+#####################################
+## Impute missing values ##
+#####################################
+#we could use a decision tree to impute missing values. I am using basic techniques to get the models working. Please feel free to change #PB
+train.purchase.m$risk_factor[is.na(train.purchase.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
+train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-median(train.purchase.m$C_previous[!is.na(((train.purchase.m$C_previous)))])
+train.purchase.m$duration_previous[is.na(train.purchase.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
+
+
+#####################################
 ## Train/Validation Split ##
 #####################################
 
 # 75/25 train/validation split            #PB
-n <-dim(train.purchase)[1] # sample size = 97009 customers purchase a policy
+n <-dim(train.purchase.m)[1] # sample size = 97009 customers purchase a policy
 set.seed(1233) # set random number generator seed to enable
 # repeatability of results
 valid <- sample(n, round(.25*n)) # randomly sample 25% test
-train.purchase$part<-0
-train.purchase$part[-valid] <-"train"
-train.purchase$part[valid]  <-"valid"
-table(train.purchase$part)
+train.purchase.m$part<-0
+train.purchase.m$part[-valid] <-"train"
+train.purchase.m$part[valid]  <-"valid"
+table(train.purchase.m$part)
+trainSubset<-(which(train.purchase.m$part=="train"))
+validSubset<-(which(train.purchase.m$part=="valid"))
 
 # add variable "part" to the full training data set
-lookup<-train.purchase[c("customer_ID","part")]
+lookup<-train.purchase.m[c("customer_ID","part")]
 train<-merge(x=train,y=lookup,by="customer_ID")
 
 
@@ -347,80 +384,64 @@ table(qda.class ,data.test$response)
 
 
 
-
-
-
-
 # ###################
 # # Dec Tree Model
 # ###################
-# Example code below , do not use #PB
+#PB
 
-# library(tree)
-# 
-# tree.fit=tree(factor(data.train.std.c$donr) ~ reg1 + reg2 + reg3 + reg4 + home + chld + hinc + genf + wrat + 
-#                 avhv_log + incm + inca + plow + npro + tgif + lgif + rgif + tdon + tlag + agif, 
-#               data=data.train.std.c)
-# 
-# plot(tree.fit)
-# text(tree.fit,pretty=1)
-# 
-# cv.tree.fit=cv.tree(tree.fit,FUN=prune.misclass)
-# names(cv.tree.fit)
-# cv.tree.fit
-# par(mfrow=c(1,2))
-# plot(cv.tree.fit$size,cv.tree.fit$dev,type="b")
-# plot(cv.tree.fit$k,cv.tree.fit$dev,type="b")
-# 
-# # We now apply the prune.misclass() function in order to prune the tree to the nodes with the lowest dev
-# lowest.dev.node<-cv.tree.fit$size[which.min(cv.tree.fit$dev)]
-# prune.tree=prune.misclass(tree.fit,best=lowest.dev.node)
+ library(tree)
+tree.fit.A=tree(A ~ risk_factor + lastQuoted_A ,
+               data=train.purchase.m,subset = trainSubset)
+
+ plot(tree.fit.A)
+ text(tree.fit.A,pretty=1)
+ 
+ cv.tree.fit.A=cv.tree(tree.fit.A,FUN=prune.misclass)
+ names(cv.tree.fit.A)
+ cv.tree.fit.A
+ par(mfrow=c(1,2))
+ plot(cv.tree.fit.A$size,cv.tree.fit.A$dev,type="b")
+ plot(cv.tree.fit.A$k,cv.tree.fit.A$dev,type="b")
+ 
+# apply the prune.misclass() function in order to prune the tree to the nodes with the lowest dev
+# lowest.dev.node<-cv.tree.fit.A$size[which.min(cv.tree.fit.A$dev)]
+# prune.tree=prune.misclass(tree.fit.A,best=lowest.dev.node)
 # plot(prune.tree)
 # text(prune.tree,pretty=1)
-# 
-# post.valid.tree <- predict(prune.tree, data.valid.std.c, type="vector")[,2] # n.valid post probs
-# 
-# profit.tree <- cumsum(14.5*c.valid[order(post.valid.tree, decreasing=T)]-2)
-# plot(profit.tree) # see how profits change as more mailings are made
-# n.mail.valid <- which.max(profit.tree) # number of mailings that maximizes profits
-# c(n.mail.valid, max(profit.tree)) # report number of mailings and maximum profit
-# n.mail.valid
-# max(profit.tree)
-# 
-# cutoff.tree <- sort(post.valid.tree, decreasing=T)[n.mail.valid+1] # set cutoff based on n.mail.valid
-# chat.valid.tree <- ifelse(post.valid.tree>cutoff.tree, 1, 0) # mail to everyone above the cutoff
-# table(chat.valid.tree, c.valid) # classification table
-# error.tree <- round(mean(chat.valid.tree!=c.valid),4)
-# 
-# 
-# 
+ 
+post.valid.tree.A <- predict(tree.fit.A, train.purchase.m[train.purchase.m$part=="valid",], type="class") # n.valid post probs
+length(post.valid.tree.A)
+table(post.valid.tree,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.tree.A <- round(mean(post.valid.tree!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.tree.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+
+error.tree.A
+error.tree.A.base 
+
+
+
 # ###################
 # # Random Forest Model
 # ###################
-# Example code below , do not use #PB
 
-# set.seed(3)
-# model.rf <- randomForest::randomForest(factor(data.train.std.c$donr) ~ reg1 + reg2 + reg3 + reg4 + home + chld + hinc + genf + wrat + 
-#                                          avhv_log + incm + inca + plow + npro + tgif + lgif + rgif + tdon + tlag + agif, 
-#                                        data.train.std.c) 
-# model.rf
-# 
-# #Var importance stats and plot
-# randomForest::importance(model.rf)
-# randomForest::varImpPlot(model.rf)
-# 
-# post.valid.rf <- predict(model.rf, data.valid.std.c,type='prob')[,2] # n.valid.c post probs
-# # calculate ordered profit function using average donation = $14.50 and mailing cost = $2
-# 
-# profit.rf <- cumsum(14.5*c.valid[order(post.valid.rf, decreasing=T)]-2)
-# plot(profit.rf) # see how profits change as more mailings are made
-# n.mail.valid <- which.max(profit.rf) # number of mailings that maximizes profits
-# c(n.mail.valid, max(profit.rf)) # report number of mailings and maximum profit
-# 
-# cutoff.rf <- sort(post.valid.rf, decreasing=T)[n.mail.valid+1] # set cutoff based on n.mail.valid
-# chat.valid.rf <- ifelse(post.valid.rf>cutoff.rf, 1, 0) # mail to everyone above the cutoff
-# table(chat.valid.rf, c.valid) # classification table
-# error.rf <- round(mean(chat.valid.rf!=c.valid),4)
+library(randomForest)
+set.seed(3)
+model.rf.A <- randomForest(A ~ risk_factor + lastQuoted_A ,
+                                       data=train.purchase.m,subset = trainSubset) 
+model.rf.A
+
+#Var importance stats and plot
+randomForest::importance(model.rf.A)
+randomForest::varImpPlot(model.rf.A)
+ 
+post.valid.rf.A <- predict(model.rf.A, train.purchase.m[train.purchase.m$part=="valid",], type="class") 
+length(post.valid.rf.A)
+table(post.valid.rf.A,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+ 
+error.rf.A
+error.rf.A.base 
 
 
 
@@ -428,8 +449,7 @@ table(qda.class ,data.test$response)
 ###################
 # Boosting Model 
 ###################
-# Example code below , do not use #PB
-# library(gbm)
+library(gbm)
 # gbm() with the option distribution="gaussian" for a regression problem; 
 # gbm() for a classification problem, we would use distribution="bernoulli". 
 # The argument n.trees=5000 indicates that we want 5000 trees, and the option interaction.depth=x limits the depth of each tree.
@@ -443,41 +463,44 @@ table(qda.class ,data.test$response)
 #                    avhv + incm + inca + plow + npro + tgif  + tdon + tlag , 
 #                  data=data.train.std.c,method = "gbm",trControl = fitControl,tuneGrid = myTuneGrid)
 
-# set.seed(1)
-# model.boost=gbm(data.train.std.c$donr ~ reg1 + reg2 + reg3 + reg4 + home + chld + hinc + genf + wrat + 
-#                   avhv + incm + inca + plow + npro + tgif  + tdon + tlag , 
-#                 data=data.train.std.c,distribution="bernoulli",n.trees=5000,interaction.depth=6,shrinkage = .01)
-# 
-# # The summary() function produces a relative influence plot and also outputs the relative influence statistics.
-# summary(model.boost)
-# 
-# post.valid.boost <- predict(model.boost, data.valid.std.c,type='response',n.trees=5000) # n.valid.c post probs
-# # calculate ordered profit function using average donation = $14.50 and mailing cost = $2
-# 
-# profit.boost <- cumsum(14.5*c.valid[order(post.valid.boost, decreasing=T)]-2)
-# plot(profit.boost) # see how profits change as more mailings are made
-# n.mail.valid <- which.max(profit.boost) # number of mailings that maximizes profits
-# c(n.mail.valid, max(profit.boost)) # report number of mailings and maximum profit
-# 
-# cutoff.boost <- sort(post.valid.boost, decreasing=T)[n.mail.valid+1] # set cutoff based on n.mail.valid
-# chat.valid.boost <- ifelse(post.valid.boost>cutoff.boost, 1, 0) # mail to everyone above the cutoff
-# table(chat.valid.boost, c.valid) # classification table
-# error.boost <- round(mean(chat.valid.boost!=c.valid),4)
+#Commented out due to the time it takes to run the code
+set.seed(1)
+model.boost=gbm(A ~ risk_factor + as.factor(lastQuoted_A) ,
+                data=train.purchase.m[train.purchase.m$part=="train",],
+                distribution="multinomial",
+                n.trees=5000,
+                interaction.depth=2,
+                shrinkage = .01)
 
+# The summary() function produces a relative influence plot and also outputs the relative influence statistics.
+summary(model.boost)
+
+post.valid.boost.prob.A <- predict(model.boost, train.purchase.m[train.purchase.m$part=="valid",],type='response',n.trees=5000) 
+post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)-1
+length(post.valid.boost.A)
+
+table(post.valid.boost.A.C,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+
+error.boost.A 
+error.boost.A.base 
 
 
 ###################
 # SVM
 ###################
-# Example code below , do not use #PB
-# 
-# library(e1071)
-# 
-# svmfit=svm(as.factor(data.train.std.c$donr) ~ reg1 + reg2 + reg3 + reg4 + home + factor(chld) + hinc + genf + wrat + 
-#              avhv + incm + inca + plow + npro + tgif + lgif + rgif + tdon + tlag + agif, 
-#            data=data.train.std.c, kernel="radial",  gamma=.03125, cost=10,probability =TRUE)
-# summary(svmfit)
-# 
+library(e1071)
+
+svmfit=svm(A ~ risk_factor + as.factor(lastQuoted_A) ,
+           data=train.purchase.m[train.purchase.m$part=="train",],
+           kernel="radial",  
+           gamma=.03125, 
+           cost=10,
+           probability =TRUE)
+summary(svmfit)
+
+
 # #use this code to tune SVM using cross validation. 
 # #commented out due to the time it requires to run # set.seed(1)
 # # myTuneGrid <- expand.grid(sigma=2^c(-25,-5,-1),C=10)
@@ -485,19 +508,16 @@ table(qda.class ,data.test$response)
 # # myModel <- train(as.factor(data.train.std.c$donr) ~ reg1 + reg2 + reg3 + reg4 + home + factor(chld) + hinc + genf + wrat + 
 # #                    avhv + incm + inca + plow + npro + tgif + lgif + rgif + tdon + tlag + agif, 
 # #                  data=data.train.std.c , method = "svmRadial",trControl = fitControl,tuneGrid = myTuneGrid)
-# 
-# 
-# pred<-predict(svmfit, data.valid.std.c,probability = TRUE)
-# post.valid.svm <- attr(pred, "probabilities")[,2] # n.valid.c post probs
-# profit.svm <- cumsum(14.5*c.valid[order(post.valid.svm, decreasing=T)]-2)
-# plot(profit.svm) # see how profits change as more mailings are made
-# n.mail.valid <- which.max(profit.svm) # number of mailings that maximizes profits
-# c(n.mail.valid, max(profit.svm)) # report number of mailings and maximum profit
-# 
-# cutoff.svm <- sort(post.valid.svm, decreasing=T)[n.mail.valid+1] # set cutoff based on n.mail.valid
-# chat.valid.svm <- ifelse(post.valid.svm>cutoff.svm, 1, 0) # mail to everyone above the cutoff
-# table(chat.valid.svm, c.valid) # classification table
-# error.svm <- round(mean(chat.valid.svm!=c.valid),4)
+
+post.valid.svm.A<-predict(svmfit,train.purchase.m[train.purchase.m$part=="valid",])
+length(post.valid.svm.A)
+
+table(post.valid.svm.A,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+
+error.svm.A 
+error.svm.A.base 
 
 
 
