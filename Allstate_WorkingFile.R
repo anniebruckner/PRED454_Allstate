@@ -218,7 +218,7 @@ histogram(~ C | car_value, data = train.purchase)
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
 
 #Frequency of policy Option by state
-A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1)
+A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1, col="blue")
 B_Freq<-prop.table(table(train.purchase$state,train.purchase$B),1)
 C_Freq<-prop.table(table(train.purchase$state,train.purchase$C),1)
 D_Freq<-prop.table(table(train.purchase$state,train.purchase$D),1)
@@ -226,6 +226,8 @@ E_Freq<-prop.table(table(train.purchase$state,train.purchase$E),1)
 F_Freq<-prop.table(table(train.purchase$state,train.purchase$F),1)
 G_Freq<-prop.table(table(train.purchase$state,train.purchase$G),1)
 #Stack bar graph for interesting relationships
+plot(A_Freq,col=c("blue","red","yellow","green"))
+
 plot(F_Freq)
 plot(G_Freq)
 
@@ -323,6 +325,15 @@ table(train.purchase.m$planCombo==train.purchase.m$lastQuotedPlan)
 
 #last quoted A
 train.purchase.m$lastQuoted_A<-substring(train.purchase.m$lastQuotedPlan,first=1,last=1)
+train.purchase.m$Quoted_A_minus2<-substring(train.purchase.m$QuoteMinus_2,first=1,last=1)
+train.purchase.m$Quoted_A_minus3<-substring(train.purchase.m$QuoteMinus_3,first=1,last=1)
+train.purchase.m$Quoted_A_minus4<-substring(train.purchase.m$QuoteMinus_4,first=1,last=1)
+
+
+
+
+#buying something other than you last quote
+train.purchase.m$A.change<-(train.purchase.m$lastQuoted_A!=train.purchase.m$A)
 
 #####################################
 ## Impute missing values ##
@@ -360,6 +371,16 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 ## Model Build ##
 #####################################
 
+###################
+# Logistic Regression to predict the prob of buying something other than you last quote 
+###################
+#PB 
+# Still working on the code below
+# model.log1.A <- glm(A.change ~ (lastQuoted_A) + Quoted_A_minus2 + Quoted_A_minus3+ Quoted_A_minus4+ risk_factor  + group_size + homeowner + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state,
+#                   data=train.purchase.m,subset = trainSubset , family=binomial("logit"))
+# summary(model.log1.A)
+# post.valid.log1.A <- predict(model.log1,train.purchase.m[train.purchase.m$part=="valid",], type="response") # n.valid post probs
+# table((post.valid.log1.A>.1),train.purchase.m$A.change[train.purchase.m$part=="valid"])
 
 ###################
 # LDA Classification Example 
@@ -426,7 +447,8 @@ error.tree.A.base
 
 library(randomForest)
 set.seed(3)
-model.rf.A <- randomForest(A ~ risk_factor + lastQuoted_A ,
+model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor  + group_size + homeowner + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_A_minus2 ,
                                        data=train.purchase.m,subset = trainSubset) 
 model.rf.A
 
