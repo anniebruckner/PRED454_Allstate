@@ -311,8 +311,8 @@ names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
 names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"QuoteMinus_4"
 
 #Cleaning up the train.purchsase data frame
-train.purchase.m$QuoteMinus_3[is.na(train.purchase.m$QuoteMinus_3)]<-"NA"
-train.purchase.m$QuoteMinus_4[is.na(train.purchase.m$QuoteMinus_4)]<-"NA"
+train.purchase.m$QuoteMinus_3[is.na(train.purchase.m$QuoteMinus_3)]<-"XXXXXXX"
+train.purchase.m$QuoteMinus_4[is.na(train.purchase.m$QuoteMinus_4)]<-"XXXXXXX"
 train.purchase.m<-train.purchase.m[order(train.purchase.m$customer_ID),]
 #removing unneccessary variables
 train.purchase.m$purchaseMinus_1 <- NULL
@@ -323,17 +323,37 @@ train.purchase.m$purchaseMinus_4 <- NULL
 #table of who bought the last plan shopped
 table(train.purchase.m$planCombo==train.purchase.m$lastQuotedPlan)
 
-#last quoted A
-train.purchase.m$lastQuoted_A<-substring(train.purchase.m$lastQuotedPlan,first=1,last=1)
-train.purchase.m$Quoted_A_minus2<-substring(train.purchase.m$QuoteMinus_2,first=1,last=1)
-train.purchase.m$Quoted_A_minus3<-substring(train.purchase.m$QuoteMinus_3,first=1,last=1)
-train.purchase.m$Quoted_A_minus4<-substring(train.purchase.m$QuoteMinus_4,first=1,last=1)
 
-
+#adding quoting history to model data frame #PB
+planOptions<-c("A","B","C","D","E","F","G")
+for (ii in 1:7)  {
+  train.purchase.m[paste("lastQuoted_",planOptions[ii],sep="")] <- substring(train.purchase.m$lastQuotedPlan,first=ii,last=ii)
+  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus2",sep="")] <- substring(train.purchase.m$QuoteMinus_2,first=ii,last=ii)
+  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus3",sep="")] <- substring(train.purchase.m$QuoteMinus_3,first=ii,last=ii)
+  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus4",sep="")] <- substring(train.purchase.m$QuoteMinus_4,first=ii,last=ii)
+  }
 
 
 #buying something other than you last quote
 train.purchase.m$A.change<-(train.purchase.m$lastQuoted_A!=train.purchase.m$A)
+train.purchase.m$B.change<-(train.purchase.m$lastQuoted_B!=train.purchase.m$B)
+train.purchase.m$C.change<-(train.purchase.m$lastQuoted_C!=train.purchase.m$C)
+train.purchase.m$D.change<-(train.purchase.m$lastQuoted_D!=train.purchase.m$D)
+train.purchase.m$E.change<-(train.purchase.m$lastQuoted_E!=train.purchase.m$E)
+train.purchase.m$F.change<-(train.purchase.m$lastQuoted_F!=train.purchase.m$F)
+train.purchase.m$G.change<-(train.purchase.m$lastQuoted_G!=train.purchase.m$G)
+
+# How often is an option changed from its last quote
+table(train.purchase.m$A.change)
+table(train.purchase.m$B.change)
+table(train.purchase.m$C.change)
+table(train.purchase.m$D.change)
+table(train.purchase.m$E.change)
+table(train.purchase.m$F.change)
+table(train.purchase.m$G.change)
+
+
+
 
 #####################################
 ## Impute missing values ##
@@ -375,12 +395,13 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 # Logistic Regression to predict the prob of buying something other than you last quote 
 ###################
 #PB 
-# Still working on the code below
-# model.log1.A <- glm(A.change ~ (lastQuoted_A) + Quoted_A_minus2 + Quoted_A_minus3+ Quoted_A_minus4+ risk_factor  + group_size + homeowner + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state,
+# # Still working on the code below
+# model.log1.A <- glm(A.change ~ (lastQuoted_A) + Quoted_A_minus2 + Quoted_A_minus3+ Quoted_A_minus4 + risk_factor  + group_size + car_age  + cost + age_oldest + age_youngest  + shopping_pt + state,
 #                   data=train.purchase.m,subset = trainSubset , family=binomial("logit"))
 # summary(model.log1.A)
 # post.valid.log1.A <- predict(model.log1,train.purchase.m[train.purchase.m$part=="valid",], type="response") # n.valid post probs
 # table((post.valid.log1.A>.1),train.purchase.m$A.change[train.purchase.m$part=="valid"])
+
 
 ###################
 # LDA Classification Example 
@@ -447,9 +468,9 @@ error.tree.A.base
 
 library(randomForest)
 set.seed(3)
-model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor  + group_size + homeowner + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                             Quoted_A_minus2 ,
-                                       data=train.purchase.m,subset = trainSubset) 
+model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 ,
+                                       data=train.purchase.m,subset = trainSubset,ntrees=500) 
 model.rf.A
 
 #Var importance stats and plot
@@ -556,6 +577,13 @@ csvSubmit<-merge(x=maxShopping_pt,y=lookup,by.x=c("lastquote","customer_ID"),by.
 csvSubmit$lastquote <- NULL
 csvSubmit<-csvSubmit[order(csvSubmit$customer_ID),]
 names(csvSubmit)<-c("customer_ID","plan")
+
+
+test.m<-merge(x=maxShopping_pt,y=test,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+test.m<-test.m[order(test.m$customer_ID),]
+
+head(test.m)
+
 
 #view sample before exporting to csv
 head(csvSubmit)
