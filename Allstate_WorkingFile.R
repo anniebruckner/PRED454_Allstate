@@ -72,19 +72,19 @@ colSums(is.na(train))[colSums(is.na(train)) > 0]
 
 # setting variable types, please feel free to change if you think this is incorrect. #PB
 # Shouldn't record_type, state, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
+## state was read as a factor already because it is a string #PB
+## added (record_type,homeowner,married_couple,C_previous) as factors.#PB
+
+## I question whether group_size or risk_factor should be factors. #PB
+
 # Why did we make location and car_value factors? # Annie
-# sapply(train,FUN = class)
-train$day<-as.factor(train$day)
-train$location<-as.factor(train$location)
-train$car_value<-as.factor(train$car_value)
-train$A<-as.factor(train$A)
-train$B<-as.factor(train$B)
-train$C<-as.factor(train$C)
-train$D<-as.factor(train$D)
-train$E<-as.factor(train$E)
-train$F<-as.factor(train$F)
-train$G<-as.factor(train$G)
-# sapply(train,FUN = class)
+## location is a location_ID , I am unsure how to handle this one. Please feel free to edit as neccessary. #PB
+## car_value is a alpha character ("a","b","c",..:), I will keep this as a factor. #PB
+
+# setting variable types, please feel free to change if you think this is incorrect. #PB
+names <- c('day','location','car_value','A','B','C','D','E','F','G','record_type','homeowner','married_couple','C_previous')
+train[,names] <- lapply(train[,names] , factor)
+str(train)
 
 
 #####################################
@@ -92,13 +92,16 @@ train$G<-as.factor(train$G)
 #####################################
 
 
-attach(train)
-par(mfrow=c(3,3))
 
-#freq table for each purchase option
+#freq table for each purchase option #PB
 apply(train[18:24],2,FUN = count)
 
-#creating histogram for each purchase option
+#creating histogram for each purchase option #PB
+#This function will plot frequency bar plot for each purchase option (A-G).
+#To run the my_hist() function, you must run the two lines of code above it. (attach(train) & par(mfrow=c(3,3)) ) 
+# it is good practice to detach the dataframe if you are no longer using it, but it seems code below is referncing variables that are attached. 
+attach(train)
+par(mfrow=c(3,3))
 my_hist<-function(variable)
 {
   x <- get(variable)
@@ -233,7 +236,7 @@ histogram(~ C | car_value, data = train.purchase)
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
 
 #Frequency of policy Option by state
-A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1, col="blue")
+A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1)
 B_Freq<-prop.table(table(train.purchase$state,train.purchase$B),1)
 C_Freq<-prop.table(table(train.purchase$state,train.purchase$C),1)
 D_Freq<-prop.table(table(train.purchase$state,train.purchase$D),1)
@@ -287,12 +290,12 @@ plot(train.pca, type="l")
 write.csv(train.pca$rotation,"pca.csv")
 
 #####################################
-## data manipulation for Model Build ## 
+## Data manipulation for Model Build ## 
 #####################################
 #PB
 
-train.purchase.m<-train.purchase
 
+train.purchase.m<-train.purchase
 
 #Adding previous quorted plans to train.purchase.m data frame #PB
 train.purchase.m$purchaseMinus_1<-train.purchase.m$shopping_pt-1
@@ -338,42 +341,33 @@ train.purchase.m$purchaseMinus_4 <- NULL
 #table of who bought the last plan shopped
 table(train.purchase.m$planCombo==train.purchase.m$lastQuotedPlan)
 
-
 #adding quoting history to model data frame #PB
 planOptions<-c("A","B","C","D","E","F","G")
 for (ii in 1:7)  {
-  train.purchase.m[paste("lastQuoted_",planOptions[ii],sep="")] <- substring(train.purchase.m$lastQuotedPlan,first=ii,last=ii)
-  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus2",sep="")] <- substring(train.purchase.m$QuoteMinus_2,first=ii,last=ii)
-  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus3",sep="")] <- substring(train.purchase.m$QuoteMinus_3,first=ii,last=ii)
-  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus4",sep="")] <- substring(train.purchase.m$QuoteMinus_4,first=ii,last=ii)
+  train.purchase.m[paste("lastQuoted_",planOptions[ii],sep="")] <- as.factor(substring(train.purchase.m$lastQuotedPlan,first=ii,last=ii))
+  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus2",sep="")] <- as.factor(substring(train.purchase.m$QuoteMinus_2,first=ii,last=ii))
+  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus3",sep="")] <- as.factor(substring(train.purchase.m$QuoteMinus_3,first=ii,last=ii))
+  train.purchase.m[paste("Quoted_",planOptions[ii],"_minus4",sep="")] <- as.factor(substring(train.purchase.m$QuoteMinus_4,first=ii,last=ii))
   }
 
 
-#buying something other than you last quote
-train.purchase.m$A.change<-(train.purchase.m$lastQuoted_A!=train.purchase.m$A)
-train.purchase.m$B.change<-(train.purchase.m$lastQuoted_B!=train.purchase.m$B)
-train.purchase.m$C.change<-(train.purchase.m$lastQuoted_C!=train.purchase.m$C)
-train.purchase.m$D.change<-(train.purchase.m$lastQuoted_D!=train.purchase.m$D)
-train.purchase.m$E.change<-(train.purchase.m$lastQuoted_E!=train.purchase.m$E)
-train.purchase.m$F.change<-(train.purchase.m$lastQuoted_F!=train.purchase.m$F)
-train.purchase.m$G.change<-(train.purchase.m$lastQuoted_G!=train.purchase.m$G)
-
-# How often is an option changed from its last quote
-table(train.purchase.m$A.change)
-table(train.purchase.m$B.change)
-table(train.purchase.m$C.change)
-table(train.purchase.m$D.change)
-table(train.purchase.m$E.change)
-table(train.purchase.m$F.change)
-table(train.purchase.m$G.change)
-
+#looking at how often options change form purchase to last quote #PB
+quoteChange_df<-data.frame(matrix(0,nrow=dim(train.purchase)[1],ncol=1))
+planOptions<-c("A","B","C","D","E","F","G")
+for (ii in 1:7)  {
+  quoteChange_df[paste(planOptions[ii],"_change",sep="")] <- as.numeric((get(paste("lastQuoted_",planOptions[ii],sep=""),train.purchase.m))!=(get(planOptions[ii],train.purchase.m)))
+}
+quoteChange_df[1]<-NULL
+colSums(quoteChange_df,2)
+# A_change B_change C_change D_change E_change F_change G_change 
+# 6894     6392     6716     4927     6067     7039    13174 
 
 
 
 #####################################
 ## Impute missing values ##
 #####################################
-#we could use a decision tree to impute missing values. I am using basic techniques to get the models working. Please feel free to change #PB
+#we could use a decision tree to impute missing values. I am using the median to get the models working. Please feel free to change #PB
 train.purchase.m$risk_factor[is.na(train.purchase.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
 train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-median(train.purchase.m$C_previous[!is.na(((train.purchase.m$C_previous)))])
 train.purchase.m$duration_previous[is.na(train.purchase.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
@@ -400,8 +394,6 @@ lookup<-train.purchase.m[c("customer_ID","part")]
 train<-merge(x=train,y=lookup,by="customer_ID")
 
 
-
-
 #####################################
 ## Model Build ##
 #####################################
@@ -410,7 +402,7 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 # Logistic Regression to predict the prob of buying something other than you last quote 
 ###################
 #PB 
-# # Still working on the code below
+# #### Still working on the code below
 # model.log1.A <- glm(A.change ~ (lastQuoted_A) + Quoted_A_minus2 + Quoted_A_minus3+ Quoted_A_minus4 + risk_factor  + group_size + car_age  + cost + age_oldest + age_youngest  + shopping_pt + state,
 #                   data=train.purchase.m,subset = trainSubset , family=binomial("logit"))
 # summary(model.log1.A)
@@ -481,6 +473,7 @@ error.tree.A.base
 # # Random Forest Model
 # ###################
 
+# Option A Model ###################
 library(randomForest)
 set.seed(3)
 model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
@@ -500,6 +493,26 @@ error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$par
  
 error.rf.A
 error.rf.A.base 
+
+# Option G Model ###################
+model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4 ,
+                           data=train.purchase.m,subset = trainSubset,ntrees=500) 
+model.rf.G
+
+#Var importance stats and plot
+randomForest::importance(model.rf.G)
+randomForest::varImpPlot(model.rf.G)
+
+post.valid.rf.G <- predict(model.rf.G, train.purchase.m[train.purchase.m$part=="valid",], type="class") 
+length(post.valid.rf.G)
+table(post.valid.rf.G,train.purchase.m$G[train.purchase.m$part=="valid"])
+error.rf.G <- round(mean(post.valid.rf.G!=train.purchase.m$G[train.purchase.m$part=="valid"]),4)
+error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[train.purchase.m$part=="valid"]!=train.purchase.m$G[train.purchase.m$part=="valid"]),4)
+
+error.rf.G
+error.rf.G.base 
+
 
 
 
