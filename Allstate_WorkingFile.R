@@ -231,7 +231,7 @@ G_Freq<-prop.table(table(train.purchase$state,train.purchase$G),1)
 plot(A_Freq,col=c("blue","red","yellow","green"))
 
 plot(F_Freq)
-plot(G_Freq)
+plot(G_Freq,col=c("blue","red","yellow","green"))
 
 
 #can't get the below function to work, trying to plot hist for each a variable for each purchase option
@@ -466,25 +466,25 @@ error.tree.A.base
 # rfParam <- expand.grid(ntree=500, importance=TRUE)
 # m <- train(x, y, method="parRF", tuneGrid=rfParam)
 
-library(randomForest)
-set.seed(3)
-model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                             Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 ,
-                                       data=train.purchase.m,subset = trainSubset,ntrees=500) 
-model.rf.A
-
-#Var importance stats and plot
-randomForest::importance(model.rf.A)
-randomForest::varImpPlot(model.rf.A)
- 
-post.valid.rf.A <- predict(model.rf.A, train.purchase.m[validSubset,], type="class") 
-length(post.valid.rf.A)
-table(post.valid.rf.A,train.purchase.m$A[validSubset])
-error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[validSubset]),4)
-error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
- 
-error.rf.A
-error.rf.A.base 
+# library(randomForest)
+# set.seed(3)
+# model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#                              Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 ,
+#                                        data=train.purchase.m,subset = trainSubset,ntrees=500) 
+# model.rf.A
+# 
+# #Var importance stats and plot
+# randomForest::importance(model.rf.A)
+# randomForest::varImpPlot(model.rf.A)
+#  
+# post.valid.rf.A <- predict(model.rf.A, train.purchase.m[validSubset,], type="class") 
+# length(post.valid.rf.A)
+# table(post.valid.rf.A,train.purchase.m$A[validSubset])
+# error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[validSubset]),4)
+# error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+#  
+# error.rf.A
+# error.rf.A.base 
 
 
 
@@ -667,18 +667,26 @@ test.m$duration_previous[is.na(test.m$duration_previous)]<-median(train.purchase
 #Predict G on the test set #PB
 predictG <- predict(model.rf.G, test.m, type="class") 
 predictResults<-data.frame(test.m$customer_ID,predictG)
+test.m$predictG<-predictG
 
-#replacing last quoted A with predicted A #PB 0.53811
+# hard coded rules
+#all resdints in Florida should select 3 or 4, predictions of 2 change to 3, could use decision tree for this #PB
+predictResults$predictG[test.m$state=="FL" & test.m$predictG=="2"]<-as.factor("3")
+
+
+#replacing last quoted G with predicted G #PB 0.53955
 predictG_Submit<-merge(x=lastQuoteSubmit,y=predictResults,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
 predictG_Submit$plan<-paste(substring(predictG_Submit$plan,first=1,last=6),predictG_Submit$predictG,sep="")
 predictG_Submit$predictG<-NULL
 head(predictG_Submit)
 
 
+ 
+
+
 #view sample before exporting to csv #PB  
 head(predictG_Submit)
-write.csv(predictG_Submit, file=file.path(path,"submit_5.csv"), row.names=FALSE, quote=FALSE)
-
+write.csv(predictG_Submit, file=file.path(path,"submit_6.csv"), row.names=FALSE, quote=FALSE)
 
 
 
