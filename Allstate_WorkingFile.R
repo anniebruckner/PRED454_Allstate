@@ -49,8 +49,8 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 # set to your local directory. We will each have to edit this line of code.
 #path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
-#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
-path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+# path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
@@ -85,12 +85,14 @@ colSums(is.na(train))[colSums(is.na(train)) > 0]
 # setting variable types, please feel free to change if you think this is incorrect. #PB
 names <- c('day','location','car_value','A','B','C','D','E','F','G','record_type','homeowner','married_couple','C_previous')
 train[,names] <- lapply(train[,names] , factor)
+test[,names] <- lapply(test[,names] , factor)
 str(train)
 
-# Shouldn't record_type, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
-# Why did we make location a factor? #Annie
-# Shouldn't car_value be either numeric or integer? #Annie
-# sapply(train,FUN = class)
+#Creating planCombo variable for plan total #PB
+train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G,sep="")
+
+#creating a dataframe of purchased records #PB
+train.purchase<-train[which(train$record_type==1),]
 
 #####################################
 ## EDA ##
@@ -182,13 +184,6 @@ bxp.cost <- boxplot(cost,main="Box Plot of Policy Option Cost", ylab="Cost (Doll
 summary(train)
 # risk_factor 240418 NAs
 # C_previous & duration_previous - 1811 NAs
-
-
-#Creating planCombo variable for plan total #PB
-train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G,sep="")
-
-#creating a dataframe of purchased records #PB
-train.purchase<-train[which(train$record_type==1),]
 
 # of unique Customers in train set - All purchase a plan
 length(unique(train$customer_ID))
@@ -283,7 +278,6 @@ write.csv(train.pca$rotation,"pca.csv")
 #####################################
 #PB
 
-
 train.purchase.m<-train.purchase
 
 #Adding previous quorted plans to train.purchase.m data frame #PB
@@ -358,7 +352,7 @@ colSums(quoteChange_df,2)
 #####################################
 #we could use a decision tree to impute missing values. I am using the median to get the models working. Please feel free to change #PB
 train.purchase.m$risk_factor[is.na(train.purchase.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
-train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-median(train.purchase.m$C_previous[!is.na(((train.purchase.m$C_previous)))])
+train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-as.factor((which.max(table(train.purchase.m$C_previous))))
 train.purchase.m$duration_previous[is.na(train.purchase.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
 
 
@@ -463,6 +457,15 @@ error.tree.A.base
 # ###################
 
 # Option A Model ###################
+
+# x<-data.frame(train.purchase.m$G[trainSubset])
+# y<-data.frame(lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#   Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4
+# 
+# library(foreach)
+# rfParam <- expand.grid(ntree=500, importance=TRUE)
+# m <- train(x, y, method="parRF", tuneGrid=rfParam)
+
 library(randomForest)
 set.seed(3)
 model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
@@ -482,6 +485,9 @@ error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.
  
 error.rf.A
 error.rf.A.base 
+
+
+
 
 # Option G Model ###################
 model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
@@ -580,7 +586,10 @@ error.svm.A
 error.svm.A.base 
 
 
-
+###################
+# ## Data manipulation for test set ## 
+###################
+#PB
 
 #Baseline prediction using last quoted plan #.53793 on Kaggle #PB
 test$planCombo<-paste(test$A,test$B,test$C,test$D,test$E,test$F,test$G,sep="")
@@ -588,23 +597,87 @@ test$planCombo<-paste(test$A,test$B,test$C,test$D,test$E,test$F,test$G,sep="")
 maxShopping_pt<-(aggregate(test$shopping_pt, by = list(test$customer_ID), max))
 names(maxShopping_pt)<-c("customer_ID","lastquote")
 lookup<-test[c("customer_ID","shopping_pt","planCombo")]
-#merge each customer ID with their last quoted plan
-csvSubmit<-merge(x=maxShopping_pt,y=lookup,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
-#clean up dataframe
-csvSubmit$lastquote <- NULL
-csvSubmit<-csvSubmit[order(csvSubmit$customer_ID),]
-names(csvSubmit)<-c("customer_ID","plan")
 
+#SUBMIT File for baseline model - based on last quote 
+ #merge each customer ID with their last quoted plan
+ lastQuoteSubmit<-merge(x=maxShopping_pt,y=lookup,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+ names(lastQuoteSubmit)[names(lastQuoteSubmit)=="planCombo"]<-"lastQuotedPlan"
+ #clean up dataframe
+ lastQuoteSubmit$lastquote <- NULL
+ lastQuoteSubmit<-lastQuoteSubmit[order(lastQuoteSubmit$customer_ID),]
+ names(lastQuoteSubmit)<-c("customer_ID","plan")
 
+#data frame of unique customers
 test.m<-merge(x=maxShopping_pt,y=test,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+names(test.m)[names(test.m)=="planCombo"]<-"lastQuotedPlan"
+test.m$shopping_pt<-test.m$lastquote
+
+#Adding previous quoted plans to train.purchase.m data frame #PB
+test.m$purchaseMinus_2<-test.m$lastquote-1
+test.m$purchaseMinus_3<-test.m$lastquote-2
+test.m$purchaseMinus_4<-test.m$lastquote-3
+
+test.m<-merge(x=test.m,y=lookup,by.x=c("purchaseMinus_2","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+names(test.m)[names(test.m)=='planCombo']<-"QuoteMinus_2"
+
+test.m<-merge(x=test.m,y=lookup,by.x=c("purchaseMinus_3","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+names(test.m)[names(test.m)=='planCombo']<-"QuoteMinus_3"
+
+test.m<-merge(x=test.m,y=lookup,by.x=c("purchaseMinus_4","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+names(test.m)[names(test.m)=='planCombo']<-"QuoteMinus_4"
+
+#Cleaning up the test.m data frame
+test.m$QuoteMinus_3[is.na(test.m$QuoteMinus_3)]<-"XXXXXXX"
+test.m$QuoteMinus_4[is.na(test.m$QuoteMinus_4)]<-"XXXXXXX"
 test.m<-test.m[order(test.m$customer_ID),]
 
+#adding quoting history for each option to model data frame #PB
+planOptions<-c("A","B","C","D","E","F","G")
+for (ii in 1:7)  {
+  test.m[paste("lastQuoted_",planOptions[ii],sep="")] <- as.factor(substring(test.m$lastQuotedPlan,first=ii,last=ii))
+  test.m[paste("Quoted_",planOptions[ii],"_minus2",sep="")] <- as.factor(substring(test.m$QuoteMinus_2,first=ii,last=ii))
+  test.m[paste("Quoted_",planOptions[ii],"_minus3",sep="")] <- as.factor(substring(test.m$QuoteMinus_3,first=ii,last=ii))
+  test.m[paste("Quoted_",planOptions[ii],"_minus4",sep="")] <- as.factor(substring(test.m$QuoteMinus_4,first=ii,last=ii))
+}
+
+test.m<-test.m[order(test.m$customer_ID),]
 head(test.m)
 
 
-#view sample before exporting to csv
-head(csvSubmit)
-write.csv(csvSubmit, file=file.path(path,"submit_2.csv"), row.names=FALSE, quote=FALSE)
+#####################################
+## Impute missing values ##
+#####################################
+#we could use a decision tree to impute missing values. I am using the median to get the models working. Please feel free to change #PB
+test.m$risk_factor[is.na(test.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
+test.m$C_previous[is.na(test.m$C_previous)]<-as.factor((which.max(table(train.purchase.m$C_previous))))
+test.m$duration_previous[is.na(test.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
+
+
+# #Predict A on the test set #PB
+# predictA <- predict(model.rf.A, test.m, type="class") 
+# predictResults<-data.frame(test.m$customer_ID,predictA)
+# 
+# #replacing last quoted A with predicted A #PB #0.53602.
+# predictA_Submit<-merge(x=lastQuoteSubmit,y=predictResults,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
+# predictA_Submit$plan<-(paste(predictA_Submit$predictA,substring(predictA_Submit$plan,first=2,last=7),sep=""))
+# predictA_Submit$predictA<-NULL
+# 
+
+
+#Predict G on the test set #PB
+predictG <- predict(model.rf.G, test.m, type="class") 
+predictResults<-data.frame(test.m$customer_ID,predictG)
+
+#replacing last quoted A with predicted A #PB 0.53811
+predictG_Submit<-merge(x=lastQuoteSubmit,y=predictResults,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
+predictG_Submit$plan<-paste(substring(predictG_Submit$plan,first=1,last=6),predictG_Submit$predictG,sep="")
+predictG_Submit$predictG<-NULL
+head(predictG_Submit)
+
+
+#view sample before exporting to csv #PB  
+head(predictG_Submit)
+write.csv(predictG_Submit, file=file.path(path,"submit_5.csv"), row.names=FALSE, quote=FALSE)
 
 
 
