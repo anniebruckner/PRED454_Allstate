@@ -71,8 +71,9 @@ colSums(is.na(train))[colSums(is.na(train)) > 0]
 # 240418        18711         18711
 
 # setting variable types, please feel free to change if you think this is incorrect. #PB
-# Shouldn't record_type, state, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
-# Why did we make location and car_value factors? # Annie
+# Shouldn't record_type, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
+# Why did we make location a factor? #Annie
+# Shouldn't car_value be either numeric or integer? #Annie
 # sapply(train,FUN = class)
 train$day<-as.factor(train$day)
 train$location<-as.factor(train$location)
@@ -92,13 +93,13 @@ train$G<-as.factor(train$G)
 #####################################
 
 
-attach(train)
+attach(train) # The following object is masked from package:base: F -- Why? #Annie
 par(mfrow=c(3,3))
 
 #freq table for each purchase option
 apply(train[18:24],2,FUN = count)
 
-#creating histogram for each purchase option
+#creating histogram for each purchase option --- This did not work for me #Annie
 my_hist<-function(variable)
 {
   x <- get(variable)
@@ -110,7 +111,7 @@ detach(train)
 #####Begin Data Description - DT 1/22/17
 #Graphing policy shoppers by state
 
-#load state codes csv file
+#load state codes csv file # Did someone create a csv? I can't find an existing file on Github or Kaggle # Annie
 state_codes <- read.csv(file.choose())
 #head(state_codes)
 
