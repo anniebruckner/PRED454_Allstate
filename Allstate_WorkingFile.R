@@ -1,7 +1,7 @@
-#PRED 454 Advances Modeling
+#PRED 454 Advanced Modeling
 #Allstate Purchase Prediction Challenge
 
-# Install Packages if they don't current exist
+# Install Packages if they don't currently exist
 list.of.packages <- c("doBy"
                       ,"lazyeval"
                       ,"psych"
@@ -32,7 +32,7 @@ list.of.packages <- c("doBy"
                       ,"caret"
                       ,"data.table"
                       ,"plyr"
-					  ,"maps")
+                      ,"maps")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -49,18 +49,34 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 # set to your local directory. We will each have to edit this line of code.
 #path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
 test <- read.csv(file.path(path,"test_v2.csv"), stringsAsFactors=TRUE)
 
+# Explore the training data -- how big is it, what types of variables included, distributions and missing values.
+class(train) # data.frame
+dim(train) # 665249     25
+names(train)
+str(train) # all integer except time, state, and car_value are factor
+summary(train) # some missing data 
+
+# Check for NAs
+colSums(is.na(train))[colSums(is.na(train)) > 0]
+
+# variables with missing data:
+# risk_factor   C_previous    duration_previous 
+# 240418        18711         18711
+
 # setting variable types, please feel free to change if you think this is incorrect. #PB
+# Shouldn't record_type, state, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
+# Why did we make location and car_value factors? # Annie
 # sapply(train,FUN = class)
 train$day<-as.factor(train$day)
 train$location<-as.factor(train$location)
 train$car_value<-as.factor(train$car_value)
-train$location<-as.factor(train$location)
 train$A<-as.factor(train$A)
 train$B<-as.factor(train$B)
 train$C<-as.factor(train$C)
@@ -69,7 +85,6 @@ train$E<-as.factor(train$E)
 train$F<-as.factor(train$F)
 train$G<-as.factor(train$G)
 # sapply(train,FUN = class)
-
 
 
 #####################################
