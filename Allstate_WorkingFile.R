@@ -1,21 +1,87 @@
 #PRED 454 Advances Modeling
 #Allstate Purchase Prediction Challenge
 
-library(lattice)
-library(data.table)
+# Install Packages if they don't current exist
+list.of.packages <- c("doBy"
+                      ,"lazyeval"
+                      ,"psych"
+                      ,"lars"
+                      ,"GGally"
+                      ,"ggplot2"
+                      ,"grid"
+                      ,"gridExtra"
+                      ,"corrgram"
+                      ,"corrplot"
+                      ,"leaps"
+                      ,"glmnet"
+                      ,"MASS"
+                      ,"gbm"
+                      ,"tree"
+                      ,"rpart"
+                      ,"rpart.plot"
+                      ,"rattle"
+                      ,"gam"
+                      ,"class"
+                      ,"e1071"
+                      ,"randomForest"
+                      ,"doParallel"
+                      ,"iterators"
+                      ,"foreach"
+                      ,"parallel"
+                      ,"lattice"
+                      ,"caret"
+                      ,"data.table"
+                      ,"plyr"
+					  ,"maps")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+# Load all packages
+lapply(list.of.packages, require, character.only = TRUE)
+
 #data.table cheat sheet.
 #https://s3.amazonaws.com/assets.datacamp.com/img/blog/data+table+cheat+sheet.pdf
 
+#####################################
+## LOADING DATA ##
+#####################################
 
 # set to your local directory. We will each have to edit this line of code.
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState"
+#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
-test <- read.csv(file.path(path,"test.csv"), stringsAsFactors=TRUE)
+test <- read.csv(file.path(path,"test_v2.csv"), stringsAsFactors=TRUE)
+
+# setting variable types, please feel free to change if you think this is incorrect. #PB
+# sapply(train,FUN = class)
+train$day<-as.factor(train$day)
+train$location<-as.factor(train$location)
+train$car_value<-as.factor(train$car_value)
+train$location<-as.factor(train$location)
+train$A<-as.factor(train$A)
+train$B<-as.factor(train$B)
+train$C<-as.factor(train$C)
+train$D<-as.factor(train$D)
+train$E<-as.factor(train$E)
+train$F<-as.factor(train$F)
+train$G<-as.factor(train$G)
+# sapply(train,FUN = class)
+
+
+
+#####################################
+## EDA ##
+#####################################
+
 
 attach(train)
 par(mfrow=c(3,3))
+
+#freq table for each purchase option
+apply(train[18:24],2,FUN = count)
 
 #creating histogram for each purchase option
 my_hist<-function(variable)
@@ -24,28 +90,98 @@ my_hist<-function(variable)
   h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
 }
 apply(X = array(names(train)[18:24]),MARGIN =1,FUN = my_hist)
+detach(train)
+
+#####Begin Data Description - DT 1/22/17
+#Graphing policy shoppers by state
+
+#load state codes csv file
+state_codes <- read.csv(file.choose())
+#head(state_codes)
+
+state_df <- as.data.frame(table(state)) #turn state data into DF for manipulating purposes
+state_df$postal_code <- state_df$state #rename column for easy merging below
+#head(state_df)
+
+#merge state data frame with frequency counts and postal codes to get state names
+state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE)
+#head(state_combo)
+
+#merge state_combo with state plotting data
+names(state_combo)[names(state_combo)=="state.x"] <- "region"
+state_combo$region<-tolower(state_combo$region) #done for merging on region to work
+state_total <- merge(all_states,state_combo, by="region", all=TRUE)
+#head(state_total)
+
+#construct map graph
+state_total <- state_total[order(state_total$order),]
+p <- ggplot()
+p <- p + geom_polygon(data=state_total, aes(x=long, y=lat, group = group, fill=state_total$Freq),colour="grey70"
+) + scale_fill_continuous(low = "aliceblue", high = "darkblue", na.value="ivory",guide="colorbar")
+P1 <- p + theme_bw()  + labs(fill = "Number of Records" 
+                             ,title = "Policy Shoppers by State", x="", y="")
+P1 + scale_y_continuous(breaks=c()) + scale_x_continuous(breaks=c()) + theme(panel.border =  element_blank())
+
+###
+#Graphical Distributions of Variables
+par.default <- par() #save in case needed later
+par(mfrow=c(1,2)) #fit more graphs
+#barplots for predictor variables
+par(mfrow=c(1,2)); ylab.box <- "Number of Records"; col.bar = "dodgerblue4" 
+barplot(table(car_value),main="Frequency by Car Values (New)",ylab=ylab.box,xlab="Car Value Categories",col=col.bar)
+barplot(table(day),main="Frequency of Site Visits by Day",ylab=ylab.box,xlab="Day (0=Monday,...,6=Sunday)",col=col.bar)
+barplot(table(C_previous),main="Frequency by Policy Option C",ylab=ylab.box,xlab="Policy Option C Choices (0=nothing)",col=col.bar)
+barplot(table(record_type),main="Frequency of Record Types",ylab=ylab.box,xlab="0 = Shopping Point, 1 = Purchase Point",col=col.bar)
+barplot(table(homeowner),main="Frequency by Homeowner", ylab=ylab.box,xlab="0 = Not Homeowner, 1 = Homeowner",col=col.bar)
+barplot(table(married_couple),main="Frequency by Marital Status",ylab=ylab.box,xlab="0 = Married, 1 = Not Married",col=col.bar)
+barplot(table(risk_factor),main="Frequency by Risk Factor",ylab=ylab.box,xlab="Risk Factor Levels",col=col.bar)
+barplot(table(shopping_pt),main="Frequency by Shopping Point",ylab=ylab.box,xlab="Shopping Point Depth",col=col.bar)
+barplot(table(time),main="Frequency of Site Visits by Time of Day",ylab=ylab.box,xlab="Time (HH:MM)",col=col.bar,border=NA)
+
+#histograms for predictor variables
+col.hist = "dodgerblue4" 
+hist(car_age,xlab="Age of Car (Years)", main="Frequency by Age of Car",col=col.hist)
+hist(age_oldest,xlab="Age of Oldest Person in Group", main="Frequency by Oldest Age",col=col.hist)
+hist(age_youngest,xlab="Age of Youngest Person in Group", main="Frequency by Youngest Age",col=col.hist)
+hist(cost,xlab="Cost (Dollars)", main="Frequency by Cost of Coverage Options",col=col.hist)
+hist(duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=col.hist)
+
+
+#barplots for response variables
+xlab.policy = "Policy Options"; par(mfrow=c(1,4))
+
+barplot(table(A),main="Frequency for Option A",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(B),main="Frequency for Option B",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(C),main="Frequency for Option C",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(D),main="Frequency for Option D",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+par(mfrow=c(1,3))
+barplot(table(E),main="Frequency for Option E",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(F),main="Frequency for Option F",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(G),main="Frequency for Option G",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+
+
+#look at 5 number summaries
+lapply(train, summary)
+
+#consider outliers in select variables
+col.box = "dodgerblue4"
+bxp.shopping_pt <- boxplot(shopping_pt,main="Box Plot of Shopping Points", ylab="Shopping Point", col=col.box)
+bxp.car_age <- boxplot(car_age,main="Box Plot of Car Age", ylab="Car Age (Years)", col=col.box)
+bxp.cost <- boxplot(cost,main="Box Plot of Policy Option Cost", ylab="Cost (Dollars)", col=col.box)
+#####End Data Description - DT 1/22/17
+
 
 # summary statistics
 summary(train)
 # risk_factor 240418 NAs
 # C_previous & duration_previous - 1811 NAs
 
-#Creating planCombo variable for plan total 
-train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G)
 
-#creating a dataframe of purchased records
+#Creating planCombo variable for plan total #PB
+train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G,sep="")
+
+#creating a dataframe of purchased records #PB
 train.purchase<-train[which(train$record_type==1),]
-
-#Adding last plan shopped to train.purchase data frame
-train.purchase$lastQuotePoint<-train.purchase$shopping_pt-1
-lookup<-train[c("customer_ID","shopping_pt","planCombo")]
-train.purchase<-merge(x=train.purchase,y=lookup,by.x=c("lastQuotePoint","customer_ID"),by.y=c("shopping_pt","customer_ID"))
-#cleaning up train.purchase dataframe
-names(train.purchase)[names(train.purchase)=='planCombo.x']<-"planCombo"
-names(train.purchase)[names(train.purchase)=='planCombo.y']<-"lastQuotedPlan"
-train.purchase<-train.purchase[order(train.purchase$customer_ID),]
-#table of who bought the last plan shopped
-table(train.purchase$planCombo==train.purchase$lastQuotedPlan)
 
 # of unique Customers in train set - All purchase a plan
 length(unique(train$customer_ID))
@@ -59,9 +195,374 @@ length(unique(train$planCombo))
 length(unique(train.purchase$planCombo))
 #1522
 
+#top 10 plans purchased.
+top10plans<-data.frame("count"=(sort(table(train.purchase$planCombo),decreasing=TRUE)[1:10]))
+
 # distribution of shopping point for purchased plans
-hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,main = "Purchase Shopping Point")
+hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,xlab = "Purchase Shopping Point",
+     main = "Purchase Point - Training Set")
+
+# distribution of shopping point for purchased plans
+hist(as.numeric((train.purchase$shopping_pt)),col="darkblue",breaks=20,xlab = "Purchase Shopping Point",
+     main = "Purchase Shopping Point - Training Set")
+maxShoppingPoint.test<-aggregate(test$shopping_pt, by = list(test$customer_ID), max)
+hist(as.numeric((maxShoppingPoint.test$x)),col="darkblue",breaks=20,xlab = "Max Shopping Point",
+     main = "Max Shopping Point - Test Set")
+
 
 #Exploring the components of a plan against variables
-# histogram(~ A+B+C +D+E+F+G| car_value, data = train.purchase)
+histogram(~ A+B+C+D+E+F+G | car_value, data = train.purchase)
+histogram(~ C | car_value, data = train.purchase)
+
+
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
+
+#Frequency of policy Option by state
+A_Freq<-prop.table(table(train.purchase$state,train.purchase$A),1, col="blue")
+B_Freq<-prop.table(table(train.purchase$state,train.purchase$B),1)
+C_Freq<-prop.table(table(train.purchase$state,train.purchase$C),1)
+D_Freq<-prop.table(table(train.purchase$state,train.purchase$D),1)
+E_Freq<-prop.table(table(train.purchase$state,train.purchase$E),1)
+F_Freq<-prop.table(table(train.purchase$state,train.purchase$F),1)
+G_Freq<-prop.table(table(train.purchase$state,train.purchase$G),1)
+#Stack bar graph for interesting relationships
+plot(A_Freq,col=c("blue","red","yellow","green"))
+
+plot(F_Freq)
+plot(G_Freq)
+
+
+#can't get the below function to work, trying to plot hist for each a variable for each purchase option
+my_hist2<-function(variable)
+{
+  x <- get(variable)
+  ggplot(train.purchase,aes(x=day))+geom_histogram()+facet_grid(~x)
+  #h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
+}
+apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
+
+
+ddply(train,~customer_ID,summarise,mean=mean(group_size))
+train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
+                                  "age_youngest","married_couple","C_previous","duration_previous")])
+
+#add numeric factors in place of categorical for correlation analysis
+train_cp = train
+
+state_factor = as.factor(train[,c("state")])
+state_ranks <- rank(-table(state_factor), ties.method="first")
+train_cp$state_num <- data.frame(category=state_factor, rank=state_ranks[as.character(state_factor)])$rank
+
+car_value_factor = as.factor(train[,c("car_value")])
+car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
+train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
+
+#correlation matrix for numeric variables
+cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
+cormat_table <- as.data.frame(as.table(cormat))
+cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
+write.csv(cormat_table, "cormat_table.csv")
+
+#PCA
+train.pca <- prcomp(na.omit(train_cp[c(2:4,7:10,12:17,27:28)]),center = TRUE,scale. = TRUE)
+print(train.pca)
+summary(train.pca)
+plot(train.pca, type="l")
+
+write.csv(train.pca$rotation,"pca.csv")
+
+#####################################
+## data manipulation for Model Build ## 
+#####################################
+#PB
+
+train.purchase.m<-train.purchase
+
+
+#Adding previous quorted plans to train.purchase.m data frame #PB
+train.purchase.m$purchaseMinus_1<-train.purchase.m$shopping_pt-1
+train.purchase.m$purchaseMinus_2<-train.purchase.m$shopping_pt-2
+train.purchase.m$purchaseMinus_3<-train.purchase.m$shopping_pt-3
+train.purchase.m$purchaseMinus_4<-train.purchase.m$shopping_pt-4
+
+#purchase minus 1 quote
+lookup<-train[c("customer_ID","shopping_pt","planCombo")]
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_1","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"lastQuotedPlan"
+
+#purchase minus 2 quote
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_2","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"QuoteMinus_2"
+
+#purchase minus 3 quote
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_3","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"QuoteMinus_3"
+
+#purchase minus 4 quote
+train.purchase.m<-merge(x=train.purchase.m,y=lookup,by.x=c("purchaseMinus_4","customer_ID"),by.y=c("shopping_pt","customer_ID"),all.x=TRUE)
+#cleaning up train.purchase.m dataframe
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.x']<-"planCombo"
+names(train.purchase.m)[names(train.purchase.m)=='planCombo.y']<-"QuoteMinus_4"
+
+#Cleaning up the train.purchsase data frame
+train.purchase.m$QuoteMinus_3[is.na(train.purchase.m$QuoteMinus_3)]<-"NA"
+train.purchase.m$QuoteMinus_4[is.na(train.purchase.m$QuoteMinus_4)]<-"NA"
+train.purchase.m<-train.purchase.m[order(train.purchase.m$customer_ID),]
+#removing unneccessary variables
+train.purchase.m$purchaseMinus_1 <- NULL
+train.purchase.m$purchaseMinus_2 <- NULL
+train.purchase.m$purchaseMinus_3 <- NULL
+train.purchase.m$purchaseMinus_4 <- NULL
+
+#table of who bought the last plan shopped
+table(train.purchase.m$planCombo==train.purchase.m$lastQuotedPlan)
+
+#last quoted A
+train.purchase.m$lastQuoted_A<-substring(train.purchase.m$lastQuotedPlan,first=1,last=1)
+train.purchase.m$Quoted_A_minus2<-substring(train.purchase.m$QuoteMinus_2,first=1,last=1)
+train.purchase.m$Quoted_A_minus3<-substring(train.purchase.m$QuoteMinus_3,first=1,last=1)
+train.purchase.m$Quoted_A_minus4<-substring(train.purchase.m$QuoteMinus_4,first=1,last=1)
+
+
+
+
+#buying something other than you last quote
+train.purchase.m$A.change<-(train.purchase.m$lastQuoted_A!=train.purchase.m$A)
+
+#####################################
+## Impute missing values ##
+#####################################
+#we could use a decision tree to impute missing values. I am using basic techniques to get the models working. Please feel free to change #PB
+train.purchase.m$risk_factor[is.na(train.purchase.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
+train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-median(train.purchase.m$C_previous[!is.na(((train.purchase.m$C_previous)))])
+train.purchase.m$duration_previous[is.na(train.purchase.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
+
+
+#####################################
+## Train/Validation Split ##
+#####################################
+
+# 75/25 train/validation split            #PB
+n <-dim(train.purchase.m)[1] # sample size = 97009 customers purchase a policy
+set.seed(1233) # set random number generator seed to enable
+# repeatability of results
+valid <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m$part<-0
+train.purchase.m$part[-valid] <-"train"
+train.purchase.m$part[valid]  <-"valid"
+table(train.purchase.m$part)
+trainSubset<-(which(train.purchase.m$part=="train"))
+validSubset<-(which(train.purchase.m$part=="valid"))
+
+# add variable "part" to the full training data set
+lookup<-train.purchase.m[c("customer_ID","part")]
+train<-merge(x=train,y=lookup,by="customer_ID")
+
+
+
+
+#####################################
+## Model Build ##
+#####################################
+
+###################
+# Logistic Regression to predict the prob of buying something other than you last quote 
+###################
+#PB 
+# Still working on the code below
+# model.log1.A <- glm(A.change ~ (lastQuoted_A) + Quoted_A_minus2 + Quoted_A_minus3+ Quoted_A_minus4+ risk_factor  + group_size + homeowner + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state,
+#                   data=train.purchase.m,subset = trainSubset , family=binomial("logit"))
+# summary(model.log1.A)
+# post.valid.log1.A <- predict(model.log1,train.purchase.m[train.purchase.m$part=="valid",], type="response") # n.valid post probs
+# table((post.valid.log1.A>.1),train.purchase.m$A.change[train.purchase.m$part=="valid"])
+
+###################
+# LDA Classification Example 
+###################
+### This is not working code, just here for an example on how to run LDA in R. #PB
+library(MASS)
+model.lda1 <- lda(x ~ y,data.train)
+# Note: strictly speaking, LDA should not be used with qualitative predictors,
+# but in practice it often is if the goal is simply to find a good predictive model
+post.valid.lda1 <- predict(model.lda1, data.train)$posterior[,2] 
+
+###################
+# QDA Classification Example 
+###################
+### This is not working code, just here for an example on how to run LDA in R. #PB
+qda.fit=qda(x ~ y,data.train)
+qda.fit
+qda.class=predict(qda.fit,data.validation)$class 
+table(qda.class ,data.test$response)
+
+
+
+
+
+# ###################
+# # Dec Tree Model
+# ###################
+#PB
+
+ library(tree)
+tree.fit.A=tree(A ~ risk_factor + lastQuoted_A ,
+               data=train.purchase.m,subset = trainSubset)
+
+ plot(tree.fit.A)
+ text(tree.fit.A,pretty=1)
+ 
+ cv.tree.fit.A=cv.tree(tree.fit.A,FUN=prune.misclass)
+ names(cv.tree.fit.A)
+ cv.tree.fit.A
+ par(mfrow=c(1,2))
+ plot(cv.tree.fit.A$size,cv.tree.fit.A$dev,type="b")
+ plot(cv.tree.fit.A$k,cv.tree.fit.A$dev,type="b")
+ 
+# apply the prune.misclass() function in order to prune the tree to the nodes with the lowest dev
+# lowest.dev.node<-cv.tree.fit.A$size[which.min(cv.tree.fit.A$dev)]
+# prune.tree=prune.misclass(tree.fit.A,best=lowest.dev.node)
+# plot(prune.tree)
+# text(prune.tree,pretty=1)
+ 
+post.valid.tree.A <- predict(tree.fit.A, train.purchase.m[train.purchase.m$part=="valid",], type="class") # n.valid post probs
+length(post.valid.tree.A)
+table(post.valid.tree,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.tree.A <- round(mean(post.valid.tree!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.tree.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+
+error.tree.A
+error.tree.A.base 
+
+
+
+# ###################
+# # Random Forest Model
+# ###################
+
+library(randomForest)
+set.seed(3)
+model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor  + group_size + homeowner + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_A_minus2 ,
+                                       data=train.purchase.m,subset = trainSubset) 
+model.rf.A
+
+#Var importance stats and plot
+randomForest::importance(model.rf.A)
+randomForest::varImpPlot(model.rf.A)
+ 
+post.valid.rf.A <- predict(model.rf.A, train.purchase.m[train.purchase.m$part=="valid",], type="class") 
+length(post.valid.rf.A)
+table(post.valid.rf.A,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+ 
+error.rf.A
+error.rf.A.base 
+
+
+
+
+###################
+# Boosting Model 
+###################
+library(gbm)
+# gbm() with the option distribution="gaussian" for a regression problem; 
+# gbm() for a classification problem, we would use distribution="bernoulli". 
+# The argument n.trees=5000 indicates that we want 5000 trees, and the option interaction.depth=x limits the depth of each tree.
+
+#Using this code to tune the GBM model. 
+#Commented out due to the time it takes to run the code
+# library(caret)
+# myTuneGrid <- expand.grid(n.trees = 500,interaction.depth = c(6,7),shrinkage = c(.001,.01,.1),n.minobsinnode=10)
+# fitControl <- trainControl(method = "repeatedcv", number = 3,repeats = 1, verboseIter = FALSE,returnResamp = "all")
+# myModel <- train(data.train.std.c$donr ~ reg1 + reg2 + reg3 + reg4 + home + chld + hinc + genf + wrat + 
+#                    avhv + incm + inca + plow + npro + tgif  + tdon + tlag , 
+#                  data=data.train.std.c,method = "gbm",trControl = fitControl,tuneGrid = myTuneGrid)
+
+#Commented out due to the time it takes to run the code
+set.seed(1)
+model.boost=gbm(A ~ risk_factor + as.factor(lastQuoted_A) ,
+                data=train.purchase.m[train.purchase.m$part=="train",],
+                distribution="multinomial",
+                n.trees=5000,
+                interaction.depth=2,
+                shrinkage = .01)
+
+# The summary() function produces a relative influence plot and also outputs the relative influence statistics.
+summary(model.boost)
+
+post.valid.boost.prob.A <- predict(model.boost, train.purchase.m[train.purchase.m$part=="valid",],type='response',n.trees=5000) 
+post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)-1
+length(post.valid.boost.A)
+
+table(post.valid.boost.A.C,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+
+error.boost.A 
+error.boost.A.base 
+
+
+###################
+# SVM
+###################
+library(e1071)
+
+svmfit=svm(A ~ risk_factor + as.factor(lastQuoted_A) ,
+           data=train.purchase.m[train.purchase.m$part=="train",],
+           kernel="radial",  
+           gamma=.03125, 
+           cost=10,
+           probability =TRUE)
+summary(svmfit)
+
+
+# #use this code to tune SVM using cross validation. 
+# #commented out due to the time it requires to run # set.seed(1)
+# # myTuneGrid <- expand.grid(sigma=2^c(-25,-5,-1),C=10)
+# # fitControl <- trainControl(method = "cv", number = 5,repeats = 1, verboseIter = FALSE,returnResamp = "all",classProbs = TRUE)
+# # myModel <- train(as.factor(data.train.std.c$donr) ~ reg1 + reg2 + reg3 + reg4 + home + factor(chld) + hinc + genf + wrat + 
+# #                    avhv + incm + inca + plow + npro + tgif + lgif + rgif + tdon + tlag + agif, 
+# #                  data=data.train.std.c , method = "svmRadial",trControl = fitControl,tuneGrid = myTuneGrid)
+
+post.valid.svm.A<-predict(svmfit,train.purchase.m[train.purchase.m$part=="valid",])
+length(post.valid.svm.A)
+
+table(post.valid.svm.A,train.purchase.m$A[train.purchase.m$part=="valid"])
+error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+
+error.svm.A 
+error.svm.A.base 
+
+
+
+
+#Baseline prediction using last quoted plan #.53793 on Kaggle #PB
+test$planCombo<-paste(test$A,test$B,test$C,test$D,test$E,test$F,test$G,sep="")
+#find the last shopping point for each customer
+maxShopping_pt<-(aggregate(test$shopping_pt, by = list(test$customer_ID), max))
+names(maxShopping_pt)<-c("customer_ID","lastquote")
+lookup<-test[c("customer_ID","shopping_pt","planCombo")]
+#merge each customer ID with their last quoted plan
+csvSubmit<-merge(x=maxShopping_pt,y=lookup,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+#clean up dataframe
+csvSubmit$lastquote <- NULL
+csvSubmit<-csvSubmit[order(csvSubmit$customer_ID),]
+names(csvSubmit)<-c("customer_ID","plan")
+
+#view sample before exporting to csv
+head(csvSubmit)
+write.csv(csvSubmit, file=file.path(path,"submit_2.csv"), row.names=FALSE, quote=FALSE)
+
+
+
+
+
+
