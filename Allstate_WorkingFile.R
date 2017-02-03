@@ -415,8 +415,8 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 # model.log1.A <- glm(A.change ~ (lastQuoted_A) + Quoted_A_minus2 + Quoted_A_minus3+ Quoted_A_minus4 + risk_factor  + group_size + car_age  + cost + age_oldest + age_youngest  + shopping_pt + state,
 #                   data=train.purchase.m,subset = trainSubset , family=binomial("logit"))
 # summary(model.log1.A)
-# post.valid.log1.A <- predict(model.log1,train.purchase.m[train.purchase.m$part=="valid",], type="response") # n.valid post probs
-# table((post.valid.log1.A>.1),train.purchase.m$A.change[train.purchase.m$part=="valid"])
+# post.valid.log1.A <- predict(model.log1,train.purchase.m[validSubset,], type="response") # n.valid post probs
+# table((post.valid.log1.A>.1),train.purchase.m$A.change[validSubset])
 
 
 ###################
@@ -467,11 +467,11 @@ tree.fit.A=tree(A ~ risk_factor + lastQuoted_A ,
 # plot(prune.tree)
 # text(prune.tree,pretty=1)
  
-post.valid.tree.A <- predict(tree.fit.A, train.purchase.m[train.purchase.m$part=="valid",], type="class") # n.valid post probs
+post.valid.tree.A <- predict(tree.fit.A, train.purchase.m[validSubset,], type="class") # n.valid post probs
 length(post.valid.tree.A)
-table(post.valid.tree,train.purchase.m$A[train.purchase.m$part=="valid"])
-error.tree.A <- round(mean(post.valid.tree!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
-error.tree.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+table(post.valid.tree,train.purchase.m$A[validSubset])
+error.tree.A <- round(mean(post.valid.tree!=train.purchase.m$A[validSubset]),4)
+error.tree.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
 
 error.tree.A
 error.tree.A.base 
@@ -494,11 +494,11 @@ model.rf.A
 randomForest::importance(model.rf.A)
 randomForest::varImpPlot(model.rf.A)
  
-post.valid.rf.A <- predict(model.rf.A, train.purchase.m[train.purchase.m$part=="valid",], type="class") 
+post.valid.rf.A <- predict(model.rf.A, train.purchase.m[validSubset,], type="class") 
 length(post.valid.rf.A)
-table(post.valid.rf.A,train.purchase.m$A[train.purchase.m$part=="valid"])
-error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
-error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+table(post.valid.rf.A,train.purchase.m$A[validSubset])
+error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[validSubset]),4)
+error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
  
 error.rf.A
 error.rf.A.base 
@@ -513,11 +513,11 @@ model.rf.G
 randomForest::importance(model.rf.G)
 randomForest::varImpPlot(model.rf.G)
 
-post.valid.rf.G <- predict(model.rf.G, train.purchase.m[train.purchase.m$part=="valid",], type="class") 
+post.valid.rf.G <- predict(model.rf.G, train.purchase.m[validSubset,]) 
 length(post.valid.rf.G)
-table(post.valid.rf.G,train.purchase.m$G[train.purchase.m$part=="valid"])
-error.rf.G <- round(mean(post.valid.rf.G!=train.purchase.m$G[train.purchase.m$part=="valid"]),4)
-error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[train.purchase.m$part=="valid"]!=train.purchase.m$G[train.purchase.m$part=="valid"]),4)
+table(post.valid.rf.G,train.purchase.m$G[validSubset])
+error.rf.G <- round(mean(post.valid.rf.G!=train.purchase.m$G[validSubset]),4)
+error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
 
 error.rf.G
 error.rf.G.base 
@@ -555,13 +555,13 @@ model.boost=gbm(A ~ risk_factor + as.factor(lastQuoted_A) ,
 # The summary() function produces a relative influence plot and also outputs the relative influence statistics.
 summary(model.boost)
 
-post.valid.boost.prob.A <- predict(model.boost, train.purchase.m[train.purchase.m$part=="valid",],type='response',n.trees=5000) 
+post.valid.boost.prob.A <- predict(model.boost, train.purchase.m[validSubset,],type='response',n.trees=5000) 
 post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)-1
 length(post.valid.boost.A)
 
-table(post.valid.boost.A.C,train.purchase.m$A[train.purchase.m$part=="valid"])
-error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
-error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+table(post.valid.boost.A.C,train.purchase.m$A[validSubset])
+error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[validSubset]),4)
+error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
 
 error.boost.A 
 error.boost.A.base 
@@ -589,12 +589,12 @@ summary(svmfit)
 # #                    avhv + incm + inca + plow + npro + tgif + lgif + rgif + tdon + tlag + agif, 
 # #                  data=data.train.std.c , method = "svmRadial",trControl = fitControl,tuneGrid = myTuneGrid)
 
-post.valid.svm.A<-predict(svmfit,train.purchase.m[train.purchase.m$part=="valid",])
+post.valid.svm.A<-predict(svmfit,train.purchase.m[validSubset,])
 length(post.valid.svm.A)
 
-table(post.valid.svm.A,train.purchase.m$A[train.purchase.m$part=="valid"])
-error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
-error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[train.purchase.m$part=="valid"]!=train.purchase.m$A[train.purchase.m$part=="valid"]),4)
+table(post.valid.svm.A,train.purchase.m$A[validSubset])
+error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[validSubset]),4)
+error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
 
 error.svm.A 
 error.svm.A.base 
