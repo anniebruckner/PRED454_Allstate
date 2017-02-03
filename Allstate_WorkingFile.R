@@ -76,6 +76,7 @@ colSums(is.na(train))[colSums(is.na(train)) > 0]
 ## added (record_type,homeowner,married_couple,C_previous) as factors.#PB
 
 ## I question whether group_size or risk_factor should be factors. #PB
+## risk_factor should be a Factor, If we want to keep group_size as Factor then we should consider age_oldest and age_youngest as Factors as well.. #AM 
 
 # Why did we make location and car_value factors? # Annie
 ## location is a location_ID , I am unsure how to handle this one. Please feel free to edit as neccessary. #PB
