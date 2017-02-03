@@ -96,29 +96,8 @@ str(train)
 ## EDA ##
 #####################################
 
-
-attach(train) # The following object is masked from package:base: F -- Why? #Annie 
-#Because there is a variable "F" in the train data set, which in base R can also mean False, so once you attached "F" can no longer be used a short for FALSE #PB
-par(mfrow=c(3,3))
-
 #freq table for each purchase option #PB
-apply(train[18:24],2,FUN = count)
-
-#creating histogram for each purchase option #PB
-#This function will plot frequency bar plot for each purchase option (A-G).
-#To run the my_hist() function, you must run the two lines of code above it. (attach(train) & par(mfrow=c(3,3)) ) 
-# it is good practice to detach the dataframe if you are no longer using it, but it seems code below is referncing variables that are attached. 
-attach(train)
-par(mfrow=c(3,3))
-
-#creating histogram for each purchase option --- This did not work for me #Annie #Please see & follow comments above #PB
-my_hist<-function(variable)
-{
-  x <- get(variable)
-  h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
-}
-apply(X = array(names(train)[18:24]),MARGIN =1,FUN = my_hist)
-detach(train)
+apply(train[18:24],2,FUN = table)
 
 #####Begin Data Description - DT 1/22/17
 #Graphing policy shoppers by state
