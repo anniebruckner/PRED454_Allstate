@@ -86,12 +86,19 @@ names <- c('day','location','car_value','A','B','C','D','E','F','G','record_type
 train[,names] <- lapply(train[,names] , factor)
 str(train)
 
+# Shouldn't record_type, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
+# Why did we make location a factor? #Annie
+# Shouldn't car_value be either numeric or integer? #Annie
+# sapply(train,FUN = class)
 
 #####################################
 ## EDA ##
 #####################################
 
 
+attach(train) # The following object is masked from package:base: F -- Why? #Annie 
+#Because there is a variable "F" in the train data set, which in base R can also mean False, so once you attached "F" can no longer be used a short for FALSE #PB
+par(mfrow=c(3,3))
 
 #freq table for each purchase option #PB
 apply(train[18:24],2,FUN = count)
@@ -102,6 +109,8 @@ apply(train[18:24],2,FUN = count)
 # it is good practice to detach the dataframe if you are no longer using it, but it seems code below is referncing variables that are attached. 
 attach(train)
 par(mfrow=c(3,3))
+
+#creating histogram for each purchase option --- This did not work for me #Annie #Please see & follow comments above #PB
 my_hist<-function(variable)
 {
   x <- get(variable)
@@ -113,7 +122,7 @@ detach(train)
 #####Begin Data Description - DT 1/22/17
 #Graphing policy shoppers by state
 
-#load state codes csv file
+#load state codes csv file # Did someone create a csv? I can't find an existing file on Github or Kaggle # Annie
 state_codes <- read.csv(file.choose())
 #head(state_codes)
 
