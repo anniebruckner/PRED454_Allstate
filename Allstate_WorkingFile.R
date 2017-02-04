@@ -274,7 +274,7 @@ forLoopGraph <- function(x) {
   for (i in 1:7) {
     #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
     #df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
-    ggplot(train.purchase,aes(x=paste(x)))+geom_bar()+facet_grid(paste("~",names(train.purchase)[17+1]))
+    t = ggplot(train.purchase,aes(x=train.purchase[,paste(x)]))+geom_bar()+facet_grid(paste("~",names(train.purchase)[17+1]))
     #df$col1 = names(df)[1]
     #df$col2 = names(df)[3]
     #names(df)[1] = "cat1"
@@ -307,7 +307,10 @@ forLoopFunc <- function(x) {
   return(t)
 }
 
-df = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
+dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
+summary(dfgraph[1]$gg)
+str(dfgraph[1])
+
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
 # AB: Neither acast nor dcast works for me.
