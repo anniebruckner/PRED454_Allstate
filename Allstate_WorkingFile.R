@@ -267,7 +267,7 @@ ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color
 
 #graph of predictor vs response
 ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
-ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(paste("~","A"))
+ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
 
 forLoopGraph <- function(x) {
   #print(x)
@@ -281,9 +281,11 @@ forLoopGraph <- function(x) {
     #names(df)[3] = "cat2"
     #t = rbind(t,df)
   }
-  #return(t)
+  return(t)
 }
-
+forLoopGraph("car_value")
+dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
+dfgraph[2]
 #histtable of each predictor for each response #SC
 pctTot <- function(x) { 
   length(x) / nrow(train.purchase) * 100
@@ -307,7 +309,7 @@ forLoopFunc <- function(x) {
   return(t)
 }
 
-dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
+
 summary(dfgraph[1]$gg)
 str(dfgraph[1])
 
