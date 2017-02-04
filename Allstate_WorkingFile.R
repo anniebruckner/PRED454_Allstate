@@ -48,9 +48,10 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
-# path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
@@ -94,6 +95,7 @@ train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G,s
 
 #creating a dataframe of purchased records #PB
 train.purchase<-train[which(train$record_type==1),]
+head(train.purchase)
 
 #####################################
 ## EDA ##
@@ -105,21 +107,26 @@ apply(train[18:24],2,FUN = table)
 #####Begin Data Description - DT 1/22/17
 #Graphing policy shoppers by state
 
-#load state codes csv file # Did someone create a csv? I can't find an existing file on Github or Kaggle # Annie
+#load state codes csv file
 state_codes <- read.csv(file.choose())
-#head(state_codes)
+head(state_codes)
 
-state_df <- as.data.frame(table(state)) #turn state data into DF for manipulating purposes
-state_df$postal_code <- state_df$state #rename column for easy merging below
-#head(state_df)
+state_df <- as.data.frame(table(state_codes$state)) #turn state data into DF for manipulating purposes -- AB: this didn't work --  object 'state' not found. (issue from removing attach()?)
+state_df$postal_code <- state_df$state #rename column for easy merging below -- AB: only Var1 and Freq exist in state_df
+colnames(state_df) <- c("state","Freq") # AB: changed Var1 to state
+head(state_df)
 
 #merge state data frame with frequency counts and postal codes to get state names
-state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE)
-#head(state_combo)
+#state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE) # AB: postal code doesn't exist in state_df
+state_combo <- merge(state_codes, state_df, by="state", all=TRUE) # AB: added because postal_code doesn't exist in both dfs
+head(state_combo) # AB: This essentialy added a Freq column to state_codes
 
 #merge state_combo with state plotting data
 names(state_combo)[names(state_combo)=="state.x"] <- "region"
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
+# AB: I got this error when I ran the above line of cod:
+# Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
+# replacement has 0 rows, data has 59
 state_total <- merge(all_states,state_combo, by="region", all=TRUE)
 #head(state_total)
 
