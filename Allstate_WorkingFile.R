@@ -48,7 +48,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 # path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 
@@ -81,13 +81,14 @@ colSums(is.na(train))[colSums(is.na(train)) > 0]
 # Why did we make location and car_value factors? # Annie
 ## location is a location_ID , I am unsure how to handle this one. Please feel free to edit as neccessary. #PB
 ## car_value is a alpha character ("a","b","c",..:), I will keep this as a factor. #PB
+## should we convert car_value, state, into numbers? #SC
 
 # setting variable types, please feel free to change if you think this is incorrect. #PB
 names <- c('day','location','car_value','A','B','C','D','E','F','G','record_type','homeowner','married_couple','C_previous')
 train[,names] <- lapply(train[,names] , factor)
 test[,names] <- lapply(test[,names] , factor)
 str(train)
-
+summary(train)
 #Creating planCombo variable for plan total #PB
 train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G,sep="")
 
@@ -234,21 +235,40 @@ plot(F_Freq)
 plot(G_Freq,col=c("blue","red","yellow","green"))
 
 
-#can't get the below function to work, trying to plot hist for each a variable for each purchase option
+#can't get the below function to work, trying to plot hist for each variable for each purchase option
 my_hist2<-function(variable)
 {
-  x <- get(variable)
-  ggplot(train.purchase,aes(x=day))+geom_histogram()+facet_grid(~x)
+  #x <- get(variable)
+  ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~variable)
   #h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
 }
 apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
 
+nums <- sapply(train.purchase, is.numeric)
+train.purchase[ , nums]
+str(train.purchase)
+ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
 
-ddply(train,~customer_ID,summarise,mean=mean(group_size))
+#histtable of each predictor for each response #SC
+pctTot <- function(x) { 
+  length(x) / nrow(train.purchase) * 100
+}
+
+forLoopFunc <- function(x) {
+  print(x)
+  for (i in 1:7) {
+    #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
+    print(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
+  }
+}
+apply(X=array(names(train.purchase)[c(4,8:11)]), MARGIN = 1, FUN = forLoopFunc)
+print(cast(train.purchase, paste(names(train.purchase)[17+1],"car_value", sep = "~"), pctTot))
+
+##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
                                   "age_youngest","married_couple","C_previous","duration_previous")])
 
-#add numeric factors in place of categorical for correlation analysis
+#add numeric factors in place of categorical for correlation analysis #SC
 train_cp = train
 
 state_factor = as.factor(train[,c("state")])
@@ -259,13 +279,13 @@ car_value_factor = as.factor(train[,c("car_value")])
 car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
 train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
 
-#correlation matrix for numeric variables
+#correlation matrix for numeric variables #SC
 cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
 cormat_table <- as.data.frame(as.table(cormat))
 cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
 write.csv(cormat_table, "cormat_table.csv")
 
-#PCA
+#PCA #SC
 train.pca <- prcomp(na.omit(train_cp[c(2:4,7:10,12:17,27:28)]),center = TRUE,scale. = TRUE)
 print(train.pca)
 summary(train.pca)
@@ -331,10 +351,10 @@ for (ii in 1:7)  {
   train.purchase.m[paste("Quoted_",planOptions[ii],"_minus2",sep="")] <- as.factor(substring(train.purchase.m$QuoteMinus_2,first=ii,last=ii))
   train.purchase.m[paste("Quoted_",planOptions[ii],"_minus3",sep="")] <- as.factor(substring(train.purchase.m$QuoteMinus_3,first=ii,last=ii))
   train.purchase.m[paste("Quoted_",planOptions[ii],"_minus4",sep="")] <- as.factor(substring(train.purchase.m$QuoteMinus_4,first=ii,last=ii))
-  }
+}
 
 
-#looking at how often options change form purchase to last quote #PB
+#looking at how often options change from purchase to last quote #PB
 quoteChange_df<-data.frame(matrix(0,nrow=dim(train.purchase)[1],ncol=1))
 planOptions<-c("A","B","C","D","E","F","G")
 for (ii in 1:7)  {
@@ -421,26 +441,26 @@ table(qda.class ,data.test$response)
 # ###################
 #PB
 
- library(tree)
+library(tree)
 tree.fit.A=tree(A ~ risk_factor + lastQuoted_A ,
-               data=train.purchase.m,subset = trainSubset)
+                data=train.purchase.m,subset = trainSubset)
 
- plot(tree.fit.A)
- text(tree.fit.A,pretty=1)
- 
- cv.tree.fit.A=cv.tree(tree.fit.A,FUN=prune.misclass)
- names(cv.tree.fit.A)
- cv.tree.fit.A
- par(mfrow=c(1,2))
- plot(cv.tree.fit.A$size,cv.tree.fit.A$dev,type="b")
- plot(cv.tree.fit.A$k,cv.tree.fit.A$dev,type="b")
- 
+plot(tree.fit.A)
+text(tree.fit.A,pretty=1)
+
+cv.tree.fit.A=cv.tree(tree.fit.A,FUN=prune.misclass)
+names(cv.tree.fit.A)
+cv.tree.fit.A
+par(mfrow=c(1,2))
+plot(cv.tree.fit.A$size,cv.tree.fit.A$dev,type="b")
+plot(cv.tree.fit.A$k,cv.tree.fit.A$dev,type="b")
+
 # apply the prune.misclass() function in order to prune the tree to the nodes with the lowest dev
 # lowest.dev.node<-cv.tree.fit.A$size[which.min(cv.tree.fit.A$dev)]
 # prune.tree=prune.misclass(tree.fit.A,best=lowest.dev.node)
 # plot(prune.tree)
 # text(prune.tree,pretty=1)
- 
+
 post.valid.tree.A <- predict(tree.fit.A, train.purchase.m[validSubset,], type="class") # n.valid post probs
 length(post.valid.tree.A)
 table(post.valid.tree,train.purchase.m$A[validSubset])
@@ -599,13 +619,13 @@ names(maxShopping_pt)<-c("customer_ID","lastquote")
 lookup<-test[c("customer_ID","shopping_pt","planCombo")]
 
 #SUBMIT File for baseline model - based on last quote 
- #merge each customer ID with their last quoted plan
- lastQuoteSubmit<-merge(x=maxShopping_pt,y=lookup,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
- names(lastQuoteSubmit)[names(lastQuoteSubmit)=="planCombo"]<-"lastQuotedPlan"
- #clean up dataframe
- lastQuoteSubmit$lastquote <- NULL
- lastQuoteSubmit<-lastQuoteSubmit[order(lastQuoteSubmit$customer_ID),]
- names(lastQuoteSubmit)<-c("customer_ID","plan")
+#merge each customer ID with their last quoted plan
+lastQuoteSubmit<-merge(x=maxShopping_pt,y=lookup,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
+names(lastQuoteSubmit)[names(lastQuoteSubmit)=="planCombo"]<-"lastQuotedPlan"
+#clean up dataframe
+lastQuoteSubmit$lastquote <- NULL
+lastQuoteSubmit<-lastQuoteSubmit[order(lastQuoteSubmit$customer_ID),]
+names(lastQuoteSubmit)<-c("customer_ID","plan")
 
 #data frame of unique customers
 test.m<-merge(x=maxShopping_pt,y=test,by.x=c("lastquote","customer_ID"),by.y=c("shopping_pt","customer_ID"))
@@ -681,14 +701,10 @@ predictG_Submit$predictG<-NULL
 head(predictG_Submit)
 
 
- 
+
 
 
 #view sample before exporting to csv #PB  
 head(predictG_Submit)
 write.csv(predictG_Submit, file=file.path(path,"submit_6.csv"), row.names=FALSE, quote=FALSE)
-
-
-
-
 
