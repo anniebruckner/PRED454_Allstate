@@ -259,11 +259,33 @@ my_hist2<-function(variable)
 }
 apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
 
+#find numeric columns #SC
 nums <- sapply(train.purchase, is.numeric)
 train.purchase[ , nums]
 str(train.purchase)
 ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color =I("black"), fill = I("dodgerblue4")) + ggtitle("Insurance Option A") + theme(plot.title = element_text(hjust = 0.5))
 
+#graph of predictor vs response
+ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
+ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
+
+forLoopGraph <- function(x) {
+  #print(x)
+  for (i in 1:7) {
+    #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
+    #df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
+    t = ggplot(train.purchase,aes(x=train.purchase[,paste(x)]))+geom_bar()+facet_grid(paste("~",names(train.purchase)[17+1]))
+    #df$col1 = names(df)[1]
+    #df$col2 = names(df)[3]
+    #names(df)[1] = "cat1"
+    #names(df)[3] = "cat2"
+    #t = rbind(t,df)
+  }
+  return(t)
+}
+forLoopGraph("car_value")
+dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
+dfgraph[2]
 #histtable of each predictor for each response #SC
 pctTot <- function(x) { 
   length(x) / nrow(train.purchase) * 100
@@ -287,28 +309,14 @@ forLoopFunc <- function(x) {
   return(t)
 }
 
-df = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
+
+summary(dfgraph[1]$gg)
+str(dfgraph[1])
+
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
 # AB: Neither acast nor dcast works for me.
 
-t = melt(cast(train.purchase, paste(names(train.purchase)[17+1],"car_value", sep = "~"), pctTot))
-t$col1 = names(t)[1]
-t$col2 = names(t)[3]
-names(t)[1] = "cat1"
-names(t)[3] = "cat2"
-t=t[FALSE,]
-
-df = melt(cast(train.purchase, paste(names(train.purchase)[17+2],"car_value", sep = "~"), pctTot))
-df$col1 = "blah2"
-df$col2 = "blah2"
-names(df)[1] = "cat1"
-names(df)[3] = "cat2"
-df
-
-t2 = rbind(df,t)
-t2=1
-names(t)[1]
 ##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
                                   "age_youngest","married_couple","C_previous","duration_previous")])
@@ -324,8 +332,11 @@ car_value_factor = as.factor(train[,c("car_value")])
 car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
 train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
 
-#correlation matrix for numeric variables #SC
-cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
+#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
+sapply(train_cp, class)
+# 2, 8, 10, 12:14, 17, 25, 27, 28
+#cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
+cormat = cor(train_cp[c(2, 8, 10, 12:14, 17, 25, 27, 28)], use="na.or.complete") # AB: This doesn't work either yet.
 cormat_table <- as.data.frame(as.table(cormat))
 cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
 write.csv(cormat_table, "cormat_table.csv")
