@@ -258,12 +258,35 @@ forLoopFunc <- function(x) {
   print(x)
   for (i in 1:7) {
     #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
-    print(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
+    df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
+    df$col1 = names(df)[1]
+    df$col2 = names(df)[3]
+    names(df)[1] = "cat1"
+    names(df)[3] = "cat2"
+    t = rbind(t,df)
   }
+  return(t)
 }
-apply(X=array(names(train.purchase)[c(4,8:11)]), MARGIN = 1, FUN = forLoopFunc)
-print(cast(train.purchase, paste(names(train.purchase)[17+1],"car_value", sep = "~"), pctTot))
 
+df = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
+
+t = melt(cast(train.purchase, paste(names(train.purchase)[17+1],"car_value", sep = "~"), pctTot))
+t$col1 = names(t)[1]
+t$col2 = names(t)[3]
+names(t)[1] = "cat1"
+names(t)[3] = "cat2"
+t=t[FALSE,]
+
+df = melt(cast(train.purchase, paste(names(train.purchase)[17+2],"car_value", sep = "~"), pctTot))
+df$col1 = "blah2"
+df$col2 = "blah2"
+names(df)[1] = "cat1"
+names(df)[3] = "cat2"
+df
+
+t2 = rbind(df,t)
+t2=1
+names(t)[1]
 ##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
                                   "age_youngest","married_couple","C_previous","duration_previous")])
