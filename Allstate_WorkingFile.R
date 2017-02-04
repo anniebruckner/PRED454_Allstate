@@ -468,6 +468,108 @@ model.lda1 <- lda(x ~ y,data.train)
 # but in practice it often is if the goal is simply to find a good predictive model
 post.valid.lda1 <- predict(model.lda1, data.train)$posterior[,2] 
 
+#
+model.lda0.a <- lda(A ~ cost + Quoted_A_minus2 + Quoted_A_minus3,
+                      data = train.purchase.m,
+                      subset = trainSubset)
+post.train.lda0.a <- predict(object=model.lda0.a, newdata = train.purchase.m[trainSubset,])
+plot(model.lda0.a, col = as.integer(train.purchase.m$A[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda0.a$class, train.purchase.m$A[trainSubset])
+
+post.valid.lda0.a <- predict(object=model.lda0.a, newdata = train.purchase.m[validSubset,])
+table(post.valid.lda0.a$class, train.purchase.m$A[validSubset])
+mean(post.valid.lda0.a$class==train.purchase.m$A[validSubset]) #what percent did we predict successfully?
+plot(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #how well did we predict validSubset?
+
+####Option A -- 2/4/17 DT
+#few variables in the model
+model.lda1.a <- lda(A ~ cost + lastQuoted_A + Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
+                    data = train.purchase.m,
+                    subset = trainSubset)
+post.train.lda1.a <- predict(object = model.lda1.a, data=train.purchase.m[testSubset,])
+table(post.train.lda1.a$class,train.purchase.m$A[trainSubset])
+
+post.valid.lda1.a <- predict(object = model.lda1.a, newdata=train.purchase.m[validSubset,])
+table(post.valid.lda1.a$class,train.purchase.m$A[validSubset]) #look at misclassification
+mean(post.valid.lda1.a$class==train.purchase.m$A[validSubset]) #what percent did we predict successfully?
+plot(post.valid.lda1.a$class, train.purchase.m$A[validSubset]) #how well did we predict validSubset?
+
+#kept running out of memory with bigger models
+model.lda2.a <- lda(A ~ shopping_pt + state  + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + cost +
+  lastQuoted_A + Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
+  data = train.purchase.m,
+  subset = trainSubset)
+plot(model.lda2, col = as.integer(train.purchase.m$A[-validSubset]), dimen = 2) #scatterplot with colors
+post.train.lda2 <- predict(object = model.lda2, data = train.purchase.m[trainSubset,])
+
+post.valid.lda2 <- predict(object = model.lda2, newdata=train.purchase.m[validSubset,]) #make sure you use newdata here, NOT data (data takes the inverse of the specified value)
+
+table(post.valid.lda2$class,train.purchase.m$A[validSubset]) #look at misclassification
+mean(post.valid.lda2$class==train.purchase.m$A[validSubset]) #what percent did we predict successfully?
+plot(post.valid.lda2$class, train.purchase.m$A[validSubset]) #how well did we predict validSubset?
+
+
+###Option B -- 2/4/17 DT
+#very basic model
+model.lda0.b <- lda(B ~ cost + Quoted_B_minus2 + Quoted_B_minus3,
+                      data = train.purchase.m,
+                      subset = trainSubset)
+post.train.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[trainSubset,])
+plot(model.lda0.b, col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda0.b$class, train.purchase.m$B[trainSubset])
+mean(post.train.lda0.b$class==train.purchase.m$B[trainSubset])
+
+post.valid.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[validSubset,])
+table(post.valid.lda0.b$class, train.purchase.m$B[validSubset])
+mean(post.valid.lda0.b$class==train.purchase.m$B[validSubset]) #what percent did we predict successfully?
+plot(post.valid.lda0.b$class, train.purchase.m$B[validSubset]) #how well did we predict validSubset?
+
+
+#few variables in the model
+model.lda1.b <- lda(B ~ cost + lastQuoted_B + Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4,
+                    data = train.purchase.m,
+                    subset = trainSubset)
+post.train.lda1.b <- predict(object = model.lda1.b, data=train.purchase.m[testSubset,])
+table(post.train.lda1.b$class,train.purchase.m$B[trainSubset])
+mean(post.train.lda1.b$class==train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
+
+post.valid.lda1.b <- predict(object = model.lda1.b, newdata=train.purchase.m[validSubset,])
+table(post.valid.lda1.b$class,train.purchase.m$B[validSubset]) #look at misclassification
+mean(post.valid.lda1.b$class==train.purchase.m$B[validSubset]) #what percent did we predict successfully?
+plot(post.valid.lda1.b$class, train.purchase.m$B[validSubset]) #how well did we predict validSubset?
+
+#without any prior quote information
+model.lda2.b <- lda(B ~ shopping_pt + state  + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + cost ,
+  data = train.purchase.m,
+  subset = trainSubset)
+plot(model.lda2.b , col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
+post.train.lda2.b <- predict(object = model.lda2.b , data = train.purchase.m[trainSubset,])
+table(post.train.lda2.b$class,train.purchase.m$B[trainSubset])
+mean(post.train.lda2.b$class==train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
+
+
+post.valid.lda2.b <- predict(object = model.lda2.b , newdata=train.purchase.m[validSubset,]) #make sure you use newdata here, NOT data (data takes the inverse of the specified value)
+table(post.valid.lda2.b$class,train.purchase.m$B[validSubset]) #look at misclassification
+mean(post.valid.lda2.b$class==train.purchase.m$B[validSubset]) #what percent did we predict successfully?
+plot(post.valid.lda2.b$class, train.purchase.m$B[validSubset]) #how well did we predict validSubset?
+
+
+#kept running out of memory with bigger models
+model.lda3.b <- lda(B ~ shopping_pt + state  + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + cost +
+  lastQuoted_B + Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4,
+  data = train.purchase.m,
+  subset = trainSubset)
+plot(model.lda3.b , col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
+post.train.lda3.b <- predict(object = model.lda3.b , data = train.purchase.m[trainSubset,])
+table(post.train.lda3.b$class,train.purchase.m$B[trainSubset])
+mean(post.train.lda3.b$class==train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
+
+post.valid.lda3.b <- predict(object = model.lda3.b , newdata=train.purchase.m[validSubset,]) #make sure you use newdata here, NOT data (data takes the inverse of the specified value)
+table(post.valid.lda3.b$class,train.purchase.m$B[validSubset]) #look at misclassification
+mean(post.valid.lda3.b$class==train.purchase.m$B[validSubset]) #what percent did we predict successfully?
+plot(post.valid.lda3.b$class, train.purchase.m$B[validSubset]) #how well did we predict validSubset?
+
+
 ###################
 # QDA Classification Example 
 ###################
