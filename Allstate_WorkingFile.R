@@ -123,13 +123,16 @@ state_combo <- merge(state_codes, state_df, by="state", all=TRUE) # AB: added be
 head(state_combo) # AB: This essentialy added a Freq column to state_codes
 
 #merge state_combo with state plotting data
-names(state_combo)[names(state_combo)=="state.x"] <- "region"
+names(state_combo)[names(state_combo)=="state"] <- "region"
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
-# AB: I got this error when I ran the above line of cod:
+# [ SOLVED] AM: changed state.x to state -> # AB: I got this error when I ran the above line of cod:
 # Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
 # replacement has 0 rows, data has 59
 state_total <- merge(all_states,state_combo, by="region", all=TRUE)
-#head(state_total)
+# AM: all_state object is missing
+#  Error in merge(all_states, state_combo, by = "region", all = TRUE) : 
+#  object 'all_states' not found
+  #head(state_total)
 
 #construct map graph
 state_total <- state_total[order(state_total$order),]
