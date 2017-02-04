@@ -324,8 +324,11 @@ car_value_factor = as.factor(train[,c("car_value")])
 car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
 train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
 
-#correlation matrix for numeric variables #SC
-cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
+#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
+sapply(train_cp, class)
+# 2, 8, 10, 12:14, 17, 25, 27, 28
+#cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
+cormat = cor(train_cp[c(2, 8, 10, 12:14, 17, 25, 27, 28)], use="na.or.complete") # AB: This doesn't work either yet.
 cormat_table <- as.data.frame(as.table(cormat))
 cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
 write.csv(cormat_table, "cormat_table.csv")
