@@ -259,10 +259,30 @@ my_hist2<-function(variable)
 }
 apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
 
+#find numeric columns #SC
 nums <- sapply(train.purchase, is.numeric)
 train.purchase[ , nums]
 str(train.purchase)
 ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color =I("black"), fill = I("dodgerblue4")) + ggtitle("Insurance Option A") + theme(plot.title = element_text(hjust = 0.5))
+
+#graph of predictor vs response
+ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
+ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(paste("~","A"))
+
+forLoopGraph <- function(x) {
+  #print(x)
+  for (i in 1:7) {
+    #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
+    #df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
+    ggplot(train.purchase,aes(x=paste(x)))+geom_bar()+facet_grid(paste("~",names(train.purchase)[17+1]))
+    #df$col1 = names(df)[1]
+    #df$col2 = names(df)[3]
+    #names(df)[1] = "cat1"
+    #names(df)[3] = "cat2"
+    #t = rbind(t,df)
+  }
+  #return(t)
+}
 
 #histtable of each predictor for each response #SC
 pctTot <- function(x) { 
@@ -292,23 +312,6 @@ df = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopF
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
 # AB: Neither acast nor dcast works for me.
 
-t = melt(cast(train.purchase, paste(names(train.purchase)[17+1],"car_value", sep = "~"), pctTot))
-t$col1 = names(t)[1]
-t$col2 = names(t)[3]
-names(t)[1] = "cat1"
-names(t)[3] = "cat2"
-t=t[FALSE,]
-
-df = melt(cast(train.purchase, paste(names(train.purchase)[17+2],"car_value", sep = "~"), pctTot))
-df$col1 = "blah2"
-df$col2 = "blah2"
-names(df)[1] = "cat1"
-names(df)[3] = "cat2"
-df
-
-t2 = rbind(df,t)
-t2=1
-names(t)[1]
 ##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
                                   "age_youngest","married_couple","C_previous","duration_previous")])
