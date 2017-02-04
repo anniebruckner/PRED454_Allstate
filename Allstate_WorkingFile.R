@@ -420,6 +420,7 @@ table(qda.class ,data.test$response)
 # # Dec Tree Model
 # ###################
 #PB
+# Option A TREE ###################
 
  library(tree)
 tree.fit.A=tree(A ~ risk_factor + lastQuoted_A ,
@@ -450,6 +451,47 @@ error.tree.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=trai
 error.tree.A
 error.tree.A.base 
 
+# Option G TREE ###################
+
+
+x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
+                data=train.purchase.m[trainSubset,])
+y<-(train.purchase.m$G[trainSubset])
+
+library(tree)
+nobs<-length(trainSubset)
+tree.fit.G=tree(y~x, control = tree.control(nobs, mindev=.01))
+
+plot(tree.fit.G)
+text(tree.fit.G,pretty=1)
+
+cv.tree.fit.G=cv.tree(tree.fit.G,FUN=prune.misclass)
+names(cv.tree.fit.G)
+cv.tree.fit.G
+par(mfrow=c(1,2))
+plot(cv.tree.fit.G$size,cv.tree.fit.G$dev,type="b")
+plot(cv.tree.fit.G$k,cv.tree.fit.G$dev,type="b")
+
+# apply the prune.misclass() function in order to prune the tree to the nodes with the lowest dev
+# lowest.dev.node<-cv.tree.fit.G$size[which.min(cv.tree.fit.G$dev)]
+# prune.tree=prune.misclass(tree.fit.G,best=lowest.dev.node)
+# plot(prune.tree)
+# text(prune.tree,pretty=1)
+
+x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
+                data=train.purchase.m[validSubset,])
+y<-(train.purchase.m$G[validSubset])
+
+post.valid.tree.G <- predict(tree.fit.G, data.frame(x), type="class") # n.valid post probs
+length(post.valid.tree.G)
+table(post.valid.tree.G,train.purchase.m$G[validSubset])
+error.tree.G <- round(mean(post.valid.tree.G!=train.purchase.m$G[validSubset]),4)
+error.tree.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
+
+error.tree.G
+error.tree.G.base 
 
 
 # ###################
@@ -458,13 +500,6 @@ error.tree.A.base
 
 # Option A Model ###################
 
-# x<-data.frame(train.purchase.m$G[trainSubset])
-# y<-data.frame(lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-#   Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4
-# 
-# library(foreach)
-# rfParam <- expand.grid(ntree=500, importance=TRUE)
-# m <- train(x, y, method="parRF", tuneGrid=rfParam)
 
 # library(randomForest)
 # set.seed(3)
@@ -487,7 +522,18 @@ error.tree.A.base
 # error.rf.A.base 
 
 
-
+# x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#                   Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
+#                 data=train.purchase.m[validSubset,])
+# y<-(train.purchase.m$G[validSubset])
+# 
+# library(foreach)
+# library(caret)
+# rfParam <- expand.grid(ntree=500, importance=TRUE,mtry = 3)
+# rfParam <- expand.grid(mtry = 3)
+# 
+# m <- train(x, y, method="parRF", tuneGrid=rfParam)
+# 
 
 # Option G Model ###################
 model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
@@ -508,6 +554,8 @@ error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.
 error.rf.G
 error.rf.G.base 
 
+library(caret)
+confusionMatrix(post.valid.rf.G,train.purchase.m$G[validSubset],)
 
 
 
@@ -531,40 +579,51 @@ library(gbm)
 
 #Commented out due to the time it takes to run the code
 set.seed(1)
-model.boost=gbm(A ~ risk_factor + as.factor(lastQuoted_A) ,
-                data=train.purchase.m[train.purchase.m$part=="train",],
+model.boost.G=gbm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+                data=train.purchase.m[trainSubset,],
                 distribution="multinomial",
-                n.trees=5000,
-                interaction.depth=2,
+                n.trees=1000,
+                interaction.depth=4,
                 shrinkage = .01)
 
 # The summary() function produces a relative influence plot and also outputs the relative influence statistics.
-summary(model.boost)
+summary(model.boost.G)
 
-post.valid.boost.prob.A <- predict(model.boost, train.purchase.m[validSubset,],type='response',n.trees=5000) 
-post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)-1
-length(post.valid.boost.A)
-
-table(post.valid.boost.A.C,train.purchase.m$A[validSubset])
-error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[validSubset]),4)
-error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
-
-error.boost.A 
-error.boost.A.base 
+summaryBoost<-summary(model.boost.G)
 
 
+post.valid.boost.prob.G <- predict(model.boost.G, train.purchase.m[validSubset,],type='response',n.trees=1000) 
+post.valid.boost.G<-apply(post.valid.boost.prob.G, 1, which.max)
+length(post.valid.boost.G)
+head(post.valid.boost.G)
+
+
+table(post.valid.boost.G,train.purchase.m$G[validSubset])
+error.boost.G <- round(mean(post.valid.boost.G!=train.purchase.m$G[validSubset]),4)
+error.boost.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
+
+error.boost.G 
+error.boost.G.base 
+confusionMatrix(post.valid.boost.G,train.purchase.m$G[validSubset],)
+#plotting relative influence of variables
+summaryBoost<-summaryBoost[order(summaryBoost$rel.inf,decreasing=FALSE),]
+par(mar=c(3,10,3,3))
+barplot(t(summaryBoost$rel.inf),names.arg = summaryBoost$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
+    
 ###################
 # SVM
 ###################
-library(e1071)
-
-svmfit=svm(A ~ risk_factor + as.factor(lastQuoted_A) ,
-           data=train.purchase.m[train.purchase.m$part=="train",],
-           kernel="radial",  
-           gamma=.03125, 
-           cost=10,
-           probability =TRUE)
-summary(svmfit)
+# library(e1071)
+# 
+# svmfit.G=svm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#              Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+#            data=train.purchase.m[train.purchase.m$part=="train",],
+#            kernel="radial",  
+#            gamma=.03125, 
+#            cost=10,
+#            probability =TRUE)
+# summary(svmfit.G)
 
 
 # #use this code to tune SVM using cross validation. 
@@ -575,15 +634,15 @@ summary(svmfit)
 # #                    avhv + incm + inca + plow + npro + tgif + lgif + rgif + tdon + tlag + agif, 
 # #                  data=data.train.std.c , method = "svmRadial",trControl = fitControl,tuneGrid = myTuneGrid)
 
-post.valid.svm.A<-predict(svmfit,train.purchase.m[validSubset,])
-length(post.valid.svm.A)
+post.valid.svm.G<-predict(svmfit.G,train.purchase.m[validSubset,])
+length(post.valid.svm.G)
 
-table(post.valid.svm.A,train.purchase.m$A[validSubset])
-error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[validSubset]),4)
-error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+table(post.valid.svm.G,train.purchase.m$G[validSubset])
+error.svm.G <- round(mean(post.valid.svm.G!=train.purchase.m$G[validSubset]),4)
+error.svm.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
 
-error.svm.A 
-error.svm.A.base 
+error.svm.G 
+error.svm.G.base 
 
 
 ###################
@@ -664,15 +723,21 @@ test.m$duration_previous[is.na(test.m$duration_previous)]<-median(train.purchase
 # 
 
 
-#Predict G on the test set #PB
-predictG <- predict(model.rf.G, test.m, type="class") 
+#Predict G on the test set using Random Forest #PB  0.53955
+predictG <- predict(model.rf.G, test.m, type="class")
+
+#Predict G on the test set using GBM #PB   0.54045
+predictG <- predict(model.boost.G, test.m,type='response',n.trees=1000) 
+predictG<-apply(predictG, 1, which.max)
+
+
 predictResults<-data.frame(test.m$customer_ID,predictG)
 test.m$predictG<-predictG
 
 # hard coded rules
 #all resdints in Florida should select 3 or 4, predictions of 2 change to 3, could use decision tree for this #PB
 predictResults$predictG[test.m$state=="FL" & test.m$predictG=="2"]<-as.factor("3")
-
+#add option F - NY and CT rules
 
 #replacing last quoted G with predicted G #PB 0.53955
 predictG_Submit<-merge(x=lastQuoteSubmit,y=predictResults,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
@@ -681,12 +746,10 @@ predictG_Submit$predictG<-NULL
 head(predictG_Submit)
 
 
- 
-
 
 #view sample before exporting to csv #PB  
 head(predictG_Submit)
-write.csv(predictG_Submit, file=file.path(path,"submit_6.csv"), row.names=FALSE, quote=FALSE)
+write.csv(predictG_Submit, file=file.path(path,"submit_GBM_1.csv"), row.names=FALSE, quote=FALSE)
 
 
 
