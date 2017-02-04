@@ -32,7 +32,8 @@ list.of.packages <- c("doBy"
                       ,"caret"
                       ,"data.table"
                       ,"plyr"
-                      ,"maps")
+                      ,"maps"
+                      ,"reshape2")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -48,9 +49,10 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
-# path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
@@ -94,6 +96,7 @@ train$planCombo<-paste(train$A,train$B,train$C,train$D,train$E,train$F,train$G,s
 
 #creating a dataframe of purchased records #PB
 train.purchase<-train[which(train$record_type==1),]
+head(train.purchase)
 
 #####################################
 ## EDA ##
@@ -105,21 +108,26 @@ apply(train[18:24],2,FUN = table)
 #####Begin Data Description - DT 1/22/17
 #Graphing policy shoppers by state
 
-#load state codes csv file # Did someone create a csv? I can't find an existing file on Github or Kaggle # Annie
+#load state codes csv file
 state_codes <- read.csv(file.choose())
-#head(state_codes)
+head(state_codes)
 
-state_df <- as.data.frame(table(state)) #turn state data into DF for manipulating purposes
-state_df$postal_code <- state_df$state #rename column for easy merging below
-#head(state_df)
+state_df <- as.data.frame(table(state_codes$state)) #turn state data into DF for manipulating purposes -- AB: this didn't work --  object 'state' not found. (issue from removing attach()?)
+state_df$postal_code <- state_df$state #rename column for easy merging below -- AB: only Var1 and Freq exist in state_df
+colnames(state_df) <- c("state","Freq") # AB: changed Var1 to state
+head(state_df)
 
 #merge state data frame with frequency counts and postal codes to get state names
-state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE)
-#head(state_combo)
+#state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE) # AB: postal code doesn't exist in state_df
+state_combo <- merge(state_codes, state_df, by="state", all=TRUE) # AB: added because postal_code doesn't exist in both dfs
+head(state_combo) # AB: This essentialy added a Freq column to state_codes
 
 #merge state_combo with state plotting data
 names(state_combo)[names(state_combo)=="state.x"] <- "region"
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
+# AB: I got this error when I ran the above line of cod:
+# Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
+# replacement has 0 rows, data has 59
 state_total <- merge(all_states,state_combo, by="region", all=TRUE)
 #head(state_total)
 
@@ -134,40 +142,42 @@ P1 + scale_y_continuous(breaks=c()) + scale_x_continuous(breaks=c()) + theme(pan
 
 ###
 #Graphical Distributions of Variables
+# Disable scientific notation for labeling plots
+options(scipen = 10)
 par.default <- par() #save in case needed later
 par(mfrow=c(1,2)) #fit more graphs
-#barplots for predictor variables
-par(mfrow=c(1,2)); ylab.box <- "Number of Records"; col.bar = "dodgerblue4" 
-barplot(table(car_value),main="Frequency by Car Values (New)",ylab=ylab.box,xlab="Car Value Categories",col=col.bar)
-barplot(table(day),main="Frequency of Site Visits by Day",ylab=ylab.box,xlab="Day (0=Monday,...,6=Sunday)",col=col.bar)
-barplot(table(C_previous),main="Frequency by Policy Option C",ylab=ylab.box,xlab="Policy Option C Choices (0=nothing)",col=col.bar)
-barplot(table(record_type),main="Frequency of Record Types",ylab=ylab.box,xlab="0 = Shopping Point, 1 = Purchase Point",col=col.bar)
-barplot(table(homeowner),main="Frequency by Homeowner", ylab=ylab.box,xlab="0 = Not Homeowner, 1 = Homeowner",col=col.bar)
-barplot(table(married_couple),main="Frequency by Marital Status",ylab=ylab.box,xlab="0 = Married, 1 = Not Married",col=col.bar)
-barplot(table(risk_factor),main="Frequency by Risk Factor",ylab=ylab.box,xlab="Risk Factor Levels",col=col.bar)
-barplot(table(shopping_pt),main="Frequency by Shopping Point",ylab=ylab.box,xlab="Shopping Point Depth",col=col.bar)
-barplot(table(time),main="Frequency of Site Visits by Time of Day",ylab=ylab.box,xlab="Time (HH:MM)",col=col.bar,border=NA)
+#barplots for predictor variables # AB: Added train$ since none worked after we removed attach()
+par(mfrow=c(3,3)); ylab.box <- "Number of Records"; col.bar = "dodgerblue4" 
+barplot(table(train$car_value),main="Frequency by Car Values (New)",ylab=ylab.box,xlab="Car Value Categories",col=col.bar)
+barplot(table(train$day),main="Frequency of Site Visits by Day",ylab=ylab.box,xlab="Day (0=Monday,...,6=Sunday)",col=col.bar)
+barplot(table(train$C_previous),main="Frequency by Policy Option C",ylab=ylab.box,xlab="Policy Option C Choices (0=nothing)",col=col.bar)
+barplot(table(train$record_type),main="Frequency of Record Types",ylab=ylab.box,xlab="0 = Shopping Point, 1 = Purchase Point",col=col.bar)
+barplot(table(train$homeowner),main="Frequency by Homeowner", ylab=ylab.box,xlab="0 = Not Homeowner, 1 = Homeowner",col=col.bar)
+barplot(table(train$married_couple),main="Frequency by Marital Status",ylab=ylab.box,xlab="0 = Married, 1 = Not Married",col=col.bar)
+barplot(table(train$risk_factor),main="Frequency by Risk Factor",ylab=ylab.box,xlab="Risk Factor Levels",col=col.bar)
+barplot(table(train$shopping_pt),main="Frequency by Shopping Point",ylab=ylab.box,xlab="Shopping Point Depth",col=col.bar)
+barplot(table(train$time),main="Frequency of Site Visits by Time of Day",ylab=ylab.box,xlab="Time (HH:MM)",col=col.bar,border=NA)
 
 #histograms for predictor variables
-col.hist = "dodgerblue4" 
-hist(car_age,xlab="Age of Car (Years)", main="Frequency by Age of Car",col=col.hist)
-hist(age_oldest,xlab="Age of Oldest Person in Group", main="Frequency by Oldest Age",col=col.hist)
-hist(age_youngest,xlab="Age of Youngest Person in Group", main="Frequency by Youngest Age",col=col.hist)
-hist(cost,xlab="Cost (Dollars)", main="Frequency by Cost of Coverage Options",col=col.hist)
-hist(duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=col.hist)
+col.hist = "dodgerblue4"
+par(mfrow=c(1,5))
+hist(train$car_age,xlab="Age of Car (Years)", main="Frequency by Age of Car",col=col.hist)
+hist(train$age_oldest,xlab="Age of Oldest Person in Group", main="Frequency by Oldest Age",col=col.hist)
+hist(train$age_youngest,xlab="Age of Youngest Person in Group", main="Frequency by Youngest Age",col=col.hist)
+hist(train$cost,xlab="Cost (Dollars)", main="Frequency by Cost of Coverage Options",col=col.hist)
+hist(train$duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=col.hist)
 
-
-#barplots for response variables
+#barplots for response variables 
 xlab.policy = "Policy Options"; par(mfrow=c(1,4))
 
-barplot(table(A),main="Frequency for Option A",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
-barplot(table(B),main="Frequency for Option B",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
-barplot(table(C),main="Frequency for Option C",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
-barplot(table(D),main="Frequency for Option D",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(train$A),main="Frequency for Option A",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(train$B),main="Frequency for Option B",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(train$C),main="Frequency for Option C",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(train$D),main="Frequency for Option D",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
 par(mfrow=c(1,3))
-barplot(table(E),main="Frequency for Option E",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
-barplot(table(F),main="Frequency for Option F",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
-barplot(table(G),main="Frequency for Option G",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(train$E),main="Frequency for Option E",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(train$F),main="Frequency for Option F",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
+barplot(table(train$G),main="Frequency for Option G",ylab=ylab.box,xlab=xlab.policy,col=col.bar)
 
 
 #look at 5 number summaries
@@ -175,16 +185,19 @@ lapply(train, summary)
 
 #consider outliers in select variables
 col.box = "dodgerblue4"
-bxp.shopping_pt <- boxplot(shopping_pt,main="Box Plot of Shopping Points", ylab="Shopping Point", col=col.box)
-bxp.car_age <- boxplot(car_age,main="Box Plot of Car Age", ylab="Car Age (Years)", col=col.box)
-bxp.cost <- boxplot(cost,main="Box Plot of Policy Option Cost", ylab="Cost (Dollars)", col=col.box)
+bxp.shopping_pt <- boxplot(train$shopping_pt,main="Box Plot of Shopping Points", ylab="Shopping Point", col=col.box)
+bxp.car_age <- boxplot(train$car_age,main="Box Plot of Car Age", ylab="Car Age (Years)", col=col.box)
+bxp.cost <- boxplot(train$cost,main="Box Plot of Policy Option Cost", ylab="Cost (Dollars)", col=col.box)
+# Reset plot display
+par(mfrow=c(1,1))
+
 #####End Data Description - DT 1/22/17
 
 
 # summary statistics
 summary(train)
 # risk_factor 240418 NAs
-# C_previous & duration_previous - 1811 NAs
+# C_previous & duration_previous - 18711 NAs
 
 # of unique Customers in train set - All purchase a plan
 length(unique(train$customer_ID))
@@ -200,23 +213,25 @@ length(unique(train.purchase$planCombo))
 
 #top 10 plans purchased.
 top10plans<-data.frame("count"=(sort(table(train.purchase$planCombo),decreasing=TRUE)[1:10]))
+top10plans
 
 # distribution of shopping point for purchased plans
-hist(as.numeric((train.purchase$shopping_pt)),col="blue",breaks=20,xlab = "Purchase Shopping Point",
-     main = "Purchase Point - Training Set")
-
-# distribution of shopping point for purchased plans
-hist(as.numeric((train.purchase$shopping_pt)),col="darkblue",breaks=20,xlab = "Purchase Shopping Point",
+hist(as.numeric((train.purchase$shopping_pt)),col="dodgerblue4",breaks=20,xlab = "Purchase Shopping Point",
      main = "Purchase Shopping Point - Training Set")
 maxShoppingPoint.test<-aggregate(test$shopping_pt, by = list(test$customer_ID), max)
-hist(as.numeric((maxShoppingPoint.test$x)),col="darkblue",breaks=20,xlab = "Max Shopping Point",
+#head(maxShoppingPoint.test)
+hist(as.numeric((maxShoppingPoint.test$x)),col="dodgerblue4",breaks=20,xlab = "Max Shopping Point",
      main = "Max Shopping Point - Test Set")
 
 
 #Exploring the components of a plan against variables
-histogram(~ A+B+C+D+E+F+G | car_value, data = train.purchase)
-histogram(~ C | car_value, data = train.purchase)
-
+mysettings <- trellis.par.get()
+mysettings$strip.background$col <- c("lightgrey", "darkgrey")
+trellis.par.set(mysettings)
+histogram(~ C | car_value, data = train.purchase,
+          col = "dodgerblue4", main = "Insurance Plan C v. Car Value", xlab = "Insurance Plan C")
+histogram(~ A+B+C+D+E+F+G | car_value, data = train.purchase,
+          col = "dodgerblue4", main = "Insurance Plan Options v. Car Value", xlab = "Insurance Options A, B, C, D, E, F, and G")
 
 # histogram(~ A+B+C +D+E+F+G| homeowner, data = train.purchase)
 
@@ -231,7 +246,7 @@ G_Freq<-prop.table(table(train.purchase$state,train.purchase$G),1)
 #Stack bar graph for interesting relationships
 plot(A_Freq,col=c("blue","red","yellow","green"))
 
-plot(F_Freq)
+plot(F_Freq,col=c("blue","red","yellow","green"))
 plot(G_Freq,col=c("blue","red","yellow","green"))
 
 
@@ -247,12 +262,16 @@ apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
 nums <- sapply(train.purchase, is.numeric)
 train.purchase[ , nums]
 str(train.purchase)
-ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
+ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color =I("black"), fill = I("dodgerblue4")) + ggtitle("Insurance Option A") + theme(plot.title = element_text(hjust = 0.5))
 
 #histtable of each predictor for each response #SC
 pctTot <- function(x) { 
   length(x) / nrow(train.purchase) * 100
 }
+
+#install.packages("reshape2")
+#library(reshape2)
+#sessionInfo()
 
 forLoopFunc <- function(x) {
   print(x)
@@ -269,6 +288,9 @@ forLoopFunc <- function(x) {
 }
 
 df = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
+# could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
+# Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
+# AB: Neither acast nor dcast works for me.
 
 t = melt(cast(train.purchase, paste(names(train.purchase)[17+1],"car_value", sep = "~"), pctTot))
 t$col1 = names(t)[1]
