@@ -270,7 +270,7 @@ str(train.purchase)
 ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color =I("black"), fill = I("dodgerblue4")) + ggtitle("Insurance Option A") + theme(plot.title = element_text(hjust = 0.5))
 
 #graph of predictor vs response
-ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
+ggplot(train.purchase,aes(x=age_oldest))+geom_bar()+facet_grid(~A)
 ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
 
 forLoopGraph <- function(x) {
@@ -313,7 +313,45 @@ forLoopFunc <- function(x) {
   return(histtableEDA)
 }
 
+#EDA for continous variables (average by coverage option) #SC
+ddply(train.purchase, .(A), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(B), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(C), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(D), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(E), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(F), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(G), summarize, avg=mean(age_oldest))
+
+ddply(train.purchase, .(A), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(B), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(C), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(D), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(E), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(F), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(G), summarize, avg=mean(age_youngest))
+
+ddply(train.purchase, .(A), summarize, avg=mean(car_age))
+ddply(train.purchase, .(B), summarize, avg=mean(car_age))
+ddply(train.purchase, .(C), summarize, avg=mean(car_age))
+ddply(train.purchase, .(D), summarize, avg=mean(car_age))
+ddply(train.purchase, .(E), summarize, avg=mean(car_age))
+ddply(train.purchase, .(F), summarize, avg=mean(car_age))
+ddply(train.purchase, .(G), summarize, avg=mean(car_age))
+
+dcast(train.purchase, age_oldest~A, mean)
 histtable = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
+write.csv(rbind.fill(newdf[1]), "c:/histtbl1.csv")
+write.csv(rbind.fill(newdf[2]), "c:/histtbl2.csv")
+write.csv(rbind.fill(newdf[3]), "c:/histtbl3.csv")
+write.csv(rbind.fill(newdf[4]), "c:/histtbl4.csv")
+write.csv(rbind.fill(newdf[5]), "c:/histtbl5.csv")
+write.csv(rbind.fill(newdf[6]), "c:/histtbl6.csv")
+write.csv(rbind.fill(newdf[7]), "c:/histtbl7.csv")
+write.csv(rbind.fill(newdf[8]), "c:/histtbl8.csv")
+write.csv(rbind.fill(newdf[9]), "c:/histtbl9.csv")
+write.csv(rbind.fill(newdf[10]), "c:/histtbl10.csv")
+write.csv(rbind.fill(newdf[11]), "c:/histtbl11.csv")
+
 
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
@@ -497,6 +535,36 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 # post.valid.log1.A <- predict(model.log1,train.purchase.m[validSubset,], type="response") # n.valid post probs
 # table((post.valid.log1.A>.1),train.purchase.m$A.change[validSubset])
 
+###################
+# Multinomial Regression -- 2/4/17 FP
+# Used instructions found here: http://r-statistics.co/Multinomial-Regression-With-R.html
+# predict function will not work on validation set, looking for help as to why.
+###################
+library(nnet)
+library(mlogit)
+multinomModel <- multinom(A ~ day + state + location + homeowner + car_value + married_couple + C_previous + lastQuoted_A, 
+                          data = train.purchase.m,
+                          subset = trainSubset)
+summary(multinomModel)
+predicted_scores <- predict(multinomModel, train.purchase.m[trainSubset,], "probs")
+head(predicted_scores)
+# predict function will not work on validation set, looking for help as to why#
+predicted_class <- predict(predicted_scores, train.purchase.m[validSubset,])
+table(predicted_class,train.purchase.m$A[validSubset])
+
+
+###################
+# K-Nearest Neighbors -- 2/4/17 FP
+# Error in knn - too many ties in knn
+###################
+library(class)
+?knn
+attach(train.purchase.m)
+train.X=cbind(train.purchase.m$homeowner[trainSubset],train.purchase.m$married_couple[trainSubset])
+test.X=cbind(train.purchase.m$homeowner[validSubset],train.purchase.m$married_couple[validSubset])
+knn.pred=knn(train.X,test.X,train.purchase.m$A[trainSubset],k=3)
+table(knn.pred,train.purchase.m$A[validSubset])
+mean(knn.pred==train.purchase.m$A[validSubset])
 
 ###################
 # LDA Classification Example 
