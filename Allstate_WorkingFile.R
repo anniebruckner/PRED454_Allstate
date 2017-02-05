@@ -33,8 +33,8 @@ list.of.packages <- c("doBy"
                       ,"data.table"
                       ,"plyr"
                       ,"maps"
-                      ,"reshape2"
-                      ,"reshape")
+                      ,"reshape"
+                      ,"reshape2")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -50,7 +50,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -124,13 +124,16 @@ state_combo <- merge(state_codes, state_df, by="state", all=TRUE) # AB: added be
 head(state_combo) # AB: This essentialy added a Freq column to state_codes
 
 #merge state_combo with state plotting data
-names(state_combo)[names(state_combo)=="state.x"] <- "region"
+names(state_combo)[names(state_combo)=="state"] <- "region"
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
-# AB: I got this error when I ran the above line of cod:
+# [ SOLVED] AM: changed state.x to state -> # AB: I got this error when I ran the above line of cod:
 # Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
 # replacement has 0 rows, data has 59
 state_total <- merge(all_states,state_combo, by="region", all=TRUE)
-#head(state_total)
+# AM: all_state object is missing
+#  Error in merge(all_states, state_combo, by = "region", all = TRUE) : 
+#  object 'all_states' not found
+  #head(state_total)
 
 #construct map graph
 state_total <- state_total[order(state_total$order),]
@@ -268,7 +271,7 @@ ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color
 
 #graph of predictor vs response
 ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
-ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(paste("~","A"))
+ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
 
 forLoopGraph <- function(x) {
   #print(x)
@@ -282,20 +285,21 @@ forLoopGraph <- function(x) {
     #names(df)[3] = "cat2"
     #t = rbind(t,df)
   }
-  #return(t)
+  return(t)
 }
 
+forLoopGraph("car_value")
+dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
+dfgraph[2]
 #histtable of each predictor for each response #SC
+
 pctTot <- function(x) { 
   length(x) / nrow(train.purchase) * 100
 }
 
-#install.packages("reshape2")
-#library(reshape2)
-#sessionInfo()
-
 forLoopFunc <- function(x) {
   print(x)
+  histtableEDAtemp = list()
   for (i in 1:7) {
     #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
     df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
@@ -303,24 +307,26 @@ forLoopFunc <- function(x) {
     df$col2 = names(df)[3]
     names(df)[1] = "cat1"
     names(df)[3] = "cat2"
-    t = rbind(t,df)
+    histtableEDAtemp[[i]] = df
   }
-  return(t)
+  histtableEDA = do.call(rbind, histtableEDAtemp)
+  return(histtableEDA)
 }
 
-dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
-summary(dfgraph[1]$gg)
-str(dfgraph[1])
+histtable = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
 
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
 # AB: Neither acast nor dcast works for me.
+# try to load up reshape and try again. I also fixed the bugs in the function 2/4/17 #SC
 
 ##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
                                   "age_youngest","married_couple","C_previous","duration_previous")])
 
 #add numeric factors in place of categorical for correlation analysis #SC
+#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
+#code works as of 2/4/17 #SC
 train_cp = train
 
 state_factor = as.factor(train[,c("state")])
@@ -331,7 +337,6 @@ car_value_factor = as.factor(train[,c("car_value")])
 car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
 train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
 
-#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
 sapply(train_cp, class)
 # 2, 8, 10, 12:14, 17, 25, 27, 28
 #cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
