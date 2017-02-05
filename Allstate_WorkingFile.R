@@ -171,6 +171,18 @@ hist(train$age_youngest,xlab="Age of Youngest Person in Group", main="Frequency 
 hist(train$cost,xlab="Cost (Dollars)", main="Frequency by Cost of Coverage Options",col=col.hist)
 hist(train$duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=col.hist)
 
+# Plots for Checkpoint 2 Data Check
+colplots <- "dodgerblue4"
+ylab.box <- "Number of Records"
+par(mfrow=c(2,4))
+hist(train$car_age,xlab="Age of Car (Years)", main="Frequency by Age of Car",col=colplots)
+barplot(table(train$shopping_pt),main="Frequency by Shopping Point",ylab=ylab.box,xlab="Shopping Point Depth",col=colplots)
+hist(train$duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=colplots)
+barplot(table(train$day),main="Frequency of Site Visits by Day",ylab=ylab.box,xlab="Day (0=Monday,...,6=Sunday)",col=colplots)
+barplot(table(train$car_value),main="Frequency by Car Values (New)",ylab=ylab.box,xlab="Car Value Categories",col=colplots)
+hist(train$age_oldest,xlab="Age of Oldest Person in Group", main="Frequency by Oldest Age",col=colplots)
+hist(train$age_youngest,xlab="Age of Youngest Person in Group", main="Frequency by Youngest Age",col=colplots)
+
 #barplots for response variables 
 xlab.policy = "Policy Options"; par(mfrow=c(1,4))
 
