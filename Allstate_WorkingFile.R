@@ -410,15 +410,21 @@ fancyRpartPlot(tree.x,sub = "") # unreadable
 
 #plot(model.lda, main = "LDA Model", cex = 0.90)
 
-# Use backward subset selection on model.lda
-model.lda.bwd <- regsubsets(A ~ shopping_pt + day + state + location + group_size + homeowner + car_age +
-                              car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-                              duration_previous + cost, data = train, nvmax=5, method="backward")
-summary(model.lda.bwd)
+# Use backward subset selection on model.lda--crashes RStudio
+#model.lda.bwd <- regsubsets(A ~ shopping_pt + day + state + location + group_size + homeowner + car_age +
+#                              car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+#                              duration_previous + cost, data = train, nvmax=5, method="backward")
+#summary(model.lda.bwd)
 
 # Create second LDA model using top selected variables
 #model.lda2 <- lda(A ~ , data = train)
 #plot(model.lda2)
+
+# Create RF model
+#model.RF <- randomForest(na.omit(A~.), data = train, mtry=5, ntree =25)
+#Error in na.fail.default: missing values in object
+#importance(model.RF)
+#varImpPlot(model.RF, main = "Random Forest Model: \n Variable Importance")
 
 #####################################
 ## Data manipulation for Model Build ## 
