@@ -535,6 +535,36 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 # post.valid.log1.A <- predict(model.log1,train.purchase.m[validSubset,], type="response") # n.valid post probs
 # table((post.valid.log1.A>.1),train.purchase.m$A.change[validSubset])
 
+###################
+# Multinomial Regression -- 2/4/17 FP
+# Used instructions found here: http://r-statistics.co/Multinomial-Regression-With-R.html
+# predict function will not work on validation set, looking for help as to why.
+###################
+library(nnet)
+library(mlogit)
+multinomModel <- multinom(A ~ day + state + location + homeowner + car_value + married_couple + C_previous + lastQuoted_A, 
+                          data = train.purchase.m,
+                          subset = trainSubset)
+summary(multinomModel)
+predicted_scores <- predict(multinomModel, train.purchase.m[trainSubset,], "probs")
+head(predicted_scores)
+# predict function will not work on validation set, looking for help as to why#
+predicted_class <- predict(predicted_scores, train.purchase.m[validSubset,])
+table(predicted_class,train.purchase.m$A[validSubset])
+
+
+###################
+# K-Nearest Neighbors -- 2/4/17 FP
+# Error in knn - too many ties in knn
+###################
+library(class)
+?knn
+attach(train.purchase.m)
+train.X=cbind(train.purchase.m$homeowner[trainSubset],train.purchase.m$married_couple[trainSubset])
+test.X=cbind(train.purchase.m$homeowner[validSubset],train.purchase.m$married_couple[validSubset])
+knn.pred=knn(train.X,test.X,train.purchase.m$A[trainSubset],k=3)
+table(knn.pred,train.purchase.m$A[validSubset])
+mean(knn.pred==train.purchase.m$A[validSubset])
 
 ###################
 # LDA Classification Example 
