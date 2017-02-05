@@ -394,27 +394,37 @@ write.csv(train.pca$rotation,"pca.csv")
 ########### EDA Naive Models ###########
 # shopping_pt + day + time + state + location + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous + duration_previous + cost
 
-# Create tree model (same as above)
-fancyRpartPlot(rpart(A ~ shopping_pt + day + time + state + location + group_size + homeowner + car_age +
-                       car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-                       duration_previous + cost, data = train), sub = "")
+# Create tree model
+tree.x <- rpart(A ~ shopping_pt + day + location + group_size + homeowner + car_value +
+                  risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+                  duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
+tree.x # splits on cost and location
+prp(tree.x)
+fancyRpartPlot(tree.x,sub = "") # unreadable
 
-# Create LDA model
-model.lda <- lda(A ~ shopping_pt + day + time + state + location + group_size + homeowner + car_age +
-                   car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-                   duration_previous + cost, data = train)
+# Create LDA model--
+#model.lda <- lda(A ~ shopping_pt + day + homeowner, data = train)
+#+ day + time + state + location + group_size + homeowner + car_age +
+#  car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+#  duration_previous + cost
 
-plot(model.lda, main = "LDA Model", cex = 0.90)
+#plot(model.lda, main = "LDA Model", cex = 0.90)
 
-# Use backward subset selection on model.lda
-model.lda.bwd <- regsubsets(A ~ shopping_pt + day + time + state + location + group_size + homeowner + car_age +
-                              car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-                              duration_previous + cost, data = train, nvmax=20, method="backward")
-summary(model.lda.bwd)
+# Use backward subset selection on model.lda--crashes RStudio
+#model.lda.bwd <- regsubsets(A ~ shopping_pt + day + state + location + group_size + homeowner + car_age +
+#                              car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+#                              duration_previous + cost, data = train, nvmax=5, method="backward")
+#summary(model.lda.bwd)
 
 # Create second LDA model using top selected variables
 #model.lda2 <- lda(A ~ , data = train)
 #plot(model.lda2)
+
+# Create RF model
+#model.RF <- randomForest(na.omit(A~.), data = train, mtry=5, ntree =25)
+#Error in na.fail.default: missing values in object
+#importance(model.RF)
+#varImpPlot(model.RF, main = "Random Forest Model: \n Variable Importance")
 
 #####################################
 ## Data manipulation for Model Build ## 
