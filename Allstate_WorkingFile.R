@@ -50,7 +50,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -326,6 +326,8 @@ train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner
                                   "age_youngest","married_couple","C_previous","duration_previous")])
 
 #add numeric factors in place of categorical for correlation analysis #SC
+#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
+#code works as of 2/4/17 #SC
 train_cp = train
 
 state_factor = as.factor(train[,c("state")])
@@ -336,7 +338,6 @@ car_value_factor = as.factor(train[,c("car_value")])
 car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
 train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
 
-#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
 sapply(train_cp, class)
 # 2, 8, 10, 12:14, 17, 25, 27, 28
 #cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
