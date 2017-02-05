@@ -287,20 +287,19 @@ forLoopGraph <- function(x) {
   }
   return(t)
 }
+
 forLoopGraph("car_value")
 dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
 dfgraph[2]
 #histtable of each predictor for each response #SC
+
 pctTot <- function(x) { 
   length(x) / nrow(train.purchase) * 100
 }
 
-#install.packages("reshape2")
-#library(reshape2)
-#sessionInfo()
-
 forLoopFunc <- function(x) {
   print(x)
+  histtableEDAtemp = list()
   for (i in 1:7) {
     #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
     df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
@@ -308,18 +307,18 @@ forLoopFunc <- function(x) {
     df$col2 = names(df)[3]
     names(df)[1] = "cat1"
     names(df)[3] = "cat2"
-    t = rbind(t,df)
+    histtableEDAtemp[[i]] = df
   }
-  return(t)
+  histtableEDA = do.call(rbind, histtableEDAtemp)
+  return(histtableEDA)
 }
 
-
-summary(dfgraph[1]$gg)
-str(dfgraph[1])
+histtable = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
 
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
 # AB: Neither acast nor dcast works for me.
+# try to load up reshape and try again. I also fixed the bugs in the function 2/4/17 #SC
 
 ##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
