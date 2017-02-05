@@ -270,7 +270,7 @@ str(train.purchase)
 ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color =I("black"), fill = I("dodgerblue4")) + ggtitle("Insurance Option A") + theme(plot.title = element_text(hjust = 0.5))
 
 #graph of predictor vs response
-ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
+ggplot(train.purchase,aes(x=age_oldest))+geom_bar()+facet_grid(~A)
 ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
 
 forLoopGraph <- function(x) {
@@ -313,6 +313,32 @@ forLoopFunc <- function(x) {
   return(histtableEDA)
 }
 
+#EDA for continous variables (average by coverage option) #SC
+ddply(train.purchase, .(A), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(B), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(C), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(D), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(E), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(F), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(G), summarize, avg=mean(age_oldest))
+
+ddply(train.purchase, .(A), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(B), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(C), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(D), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(E), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(F), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(G), summarize, avg=mean(age_youngest))
+
+ddply(train.purchase, .(A), summarize, avg=mean(car_age))
+ddply(train.purchase, .(B), summarize, avg=mean(car_age))
+ddply(train.purchase, .(C), summarize, avg=mean(car_age))
+ddply(train.purchase, .(D), summarize, avg=mean(car_age))
+ddply(train.purchase, .(E), summarize, avg=mean(car_age))
+ddply(train.purchase, .(F), summarize, avg=mean(car_age))
+ddply(train.purchase, .(G), summarize, avg=mean(car_age))
+
+dcast(train.purchase, age_oldest~A, mean)
 histtable = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
 write.csv(rbind.fill(newdf[1]), "c:/histtbl1.csv")
 write.csv(rbind.fill(newdf[2]), "c:/histtbl2.csv")
@@ -325,6 +351,7 @@ write.csv(rbind.fill(newdf[8]), "c:/histtbl8.csv")
 write.csv(rbind.fill(newdf[9]), "c:/histtbl9.csv")
 write.csv(rbind.fill(newdf[10]), "c:/histtbl10.csv")
 write.csv(rbind.fill(newdf[11]), "c:/histtbl11.csv")
+
 
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
