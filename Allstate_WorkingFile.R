@@ -50,7 +50,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -126,7 +126,7 @@ head(state_combo) # AB: This essentialy added a Freq column to state_codes
 #merge state_combo with state plotting data
 names(state_combo)[names(state_combo)=="state"] <- "region"
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
-# [ SOLVED] AM: changed state.x to state -> # AB: I got this error when I ran the above line of cod:
+# [ SOLVED] AM: changed state.x to state -> # AB: I got this error when I ran the above line of code:
 # Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
 # replacement has 0 rows, data has 59
 state_total <- merge(all_states,state_combo, by="region", all=TRUE)
@@ -383,13 +383,38 @@ cormat_table <- as.data.frame(as.table(cormat))
 cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
 write.csv(cormat_table, "cormat_table.csv")
 
-#PCA #SC
+#PCA #SC -- AB: This no longer works since 'x' must be numeric
 train.pca <- prcomp(na.omit(train_cp[c(2:4,7:10,12:17,27:28)]),center = TRUE,scale. = TRUE)
 print(train.pca)
 summary(train.pca)
 plot(train.pca, type="l")
 
 write.csv(train.pca$rotation,"pca.csv")
+
+########### EDA Naive Models ###########
+# shopping_pt + day + time + state + location + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous + duration_previous + cost
+
+# Create tree model (same as above)
+fancyRpartPlot(rpart(A ~ shopping_pt + day + time + state + location + group_size + homeowner + car_age +
+                       car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+                       duration_previous + cost, data = train), sub = "")
+
+# Create LDA model
+model.lda <- lda(A ~ shopping_pt + day + time + state + location + group_size + homeowner + car_age +
+                   car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+                   duration_previous + cost, data = train)
+
+plot(model.lda, main = "LDA Model", cex = 0.90)
+
+# Use backward subset selection on model.lda
+model.lda.bwd <- regsubsets(A ~ shopping_pt + day + time + state + location + group_size + homeowner + car_age +
+                              car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+                              duration_previous + cost, data = train, nvmax=20, method="backward")
+summary(model.lda.bwd)
+
+# Create second LDA model using top selected variables
+#model.lda2 <- lda(A ~ , data = train)
+#plot(model.lda2)
 
 #####################################
 ## Data manipulation for Model Build ## 
