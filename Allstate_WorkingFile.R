@@ -33,7 +33,8 @@ list.of.packages <- c("doBy"
                       ,"data.table"
                       ,"plyr"
                       ,"maps"
-                      ,"reshape2")
+                      ,"reshape2"
+                      ,"reshape")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
