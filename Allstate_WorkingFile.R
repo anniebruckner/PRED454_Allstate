@@ -314,6 +314,17 @@ forLoopFunc <- function(x) {
 }
 
 histtable = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
+write.csv(rbind.fill(newdf[1]), "c:/histtbl1.csv")
+write.csv(rbind.fill(newdf[2]), "c:/histtbl2.csv")
+write.csv(rbind.fill(newdf[3]), "c:/histtbl3.csv")
+write.csv(rbind.fill(newdf[4]), "c:/histtbl4.csv")
+write.csv(rbind.fill(newdf[5]), "c:/histtbl5.csv")
+write.csv(rbind.fill(newdf[6]), "c:/histtbl6.csv")
+write.csv(rbind.fill(newdf[7]), "c:/histtbl7.csv")
+write.csv(rbind.fill(newdf[8]), "c:/histtbl8.csv")
+write.csv(rbind.fill(newdf[9]), "c:/histtbl9.csv")
+write.csv(rbind.fill(newdf[10]), "c:/histtbl10.csv")
+write.csv(rbind.fill(newdf[11]), "c:/histtbl11.csv")
 
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
