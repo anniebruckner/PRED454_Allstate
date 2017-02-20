@@ -33,6 +33,7 @@ list.of.packages <- c("doBy"
                       ,"data.table"
                       ,"plyr"
                       ,"maps"
+                      ,"reshape"
                       ,"reshape2")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -123,13 +124,16 @@ state_combo <- merge(state_codes, state_df, by="state", all=TRUE) # AB: added be
 head(state_combo) # AB: This essentialy added a Freq column to state_codes
 
 #merge state_combo with state plotting data
-names(state_combo)[names(state_combo)=="state.x"] <- "region"
+names(state_combo)[names(state_combo)=="state"] <- "region"
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
-# AB: I got this error when I ran the above line of cod:
+# [ SOLVED] AM: changed state.x to state -> # AB: I got this error when I ran the above line of code:
 # Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
 # replacement has 0 rows, data has 59
 state_total <- merge(all_states,state_combo, by="region", all=TRUE)
-#head(state_total)
+# AM: all_state object is missing
+#  Error in merge(all_states, state_combo, by = "region", all = TRUE) : 
+#  object 'all_states' not found
+  #head(state_total)
 
 #construct map graph
 state_total <- state_total[order(state_total$order),]
@@ -166,6 +170,18 @@ hist(train$age_oldest,xlab="Age of Oldest Person in Group", main="Frequency by O
 hist(train$age_youngest,xlab="Age of Youngest Person in Group", main="Frequency by Youngest Age",col=col.hist)
 hist(train$cost,xlab="Cost (Dollars)", main="Frequency by Cost of Coverage Options",col=col.hist)
 hist(train$duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=col.hist)
+
+# Plots for Checkpoint 2 Data Check
+colplots <- "dodgerblue4"
+ylab.box <- "Number of Records"
+par(mfrow=c(2,4))
+hist(train$car_age,xlab="Age of Car (Years)", main="Frequency by Age of Car",col=colplots)
+barplot(table(train$shopping_pt),main="Frequency by Shopping Point",ylab=ylab.box,xlab="Shopping Point Depth",col=colplots)
+hist(train$duration_previous,xlab="Duration (Years)", main="Previous Insurance Issuer Duration",col=colplots)
+barplot(table(train$day),main="Frequency of Site Visits by Day",ylab=ylab.box,xlab="Day (0=Monday,...,6=Sunday)",col=colplots)
+barplot(table(train$car_value),main="Frequency by Car Values (New)",ylab=ylab.box,xlab="Car Value Categories",col=colplots)
+hist(train$age_oldest,xlab="Age of Oldest Person in Group", main="Frequency by Oldest Age",col=colplots)
+hist(train$age_youngest,xlab="Age of Youngest Person in Group", main="Frequency by Youngest Age",col=colplots)
 
 #barplots for response variables 
 xlab.policy = "Policy Options"; par(mfrow=c(1,4))
@@ -266,7 +282,7 @@ str(train.purchase)
 ggplot(train.purchase,aes(x=day)) + theme_bw() + facet_grid(~A) + geom_bar(color =I("black"), fill = I("dodgerblue4")) + ggtitle("Insurance Option A") + theme(plot.title = element_text(hjust = 0.5))
 
 #graph of predictor vs response
-ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~A)
+ggplot(train.purchase,aes(x=age_oldest))+geom_bar()+facet_grid(~A)
 ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
 
 forLoopGraph <- function(x) {
@@ -283,20 +299,19 @@ forLoopGraph <- function(x) {
   }
   return(t)
 }
+
 forLoopGraph("car_value")
 dfgraph = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopGraph)
 dfgraph[2]
 #histtable of each predictor for each response #SC
+
 pctTot <- function(x) { 
   length(x) / nrow(train.purchase) * 100
 }
 
-#install.packages("reshape2")
-#library(reshape2)
-#sessionInfo()
-
 forLoopFunc <- function(x) {
   print(x)
+  histtableEDAtemp = list()
   for (i in 1:7) {
     #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
     df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
@@ -304,24 +319,64 @@ forLoopFunc <- function(x) {
     df$col2 = names(df)[3]
     names(df)[1] = "cat1"
     names(df)[3] = "cat2"
-    t = rbind(t,df)
+    histtableEDAtemp[[i]] = df
   }
-  return(t)
+  histtableEDA = do.call(rbind, histtableEDAtemp)
+  return(histtableEDA)
 }
 
+#EDA for continous variables (average by coverage option) #SC
+ddply(train.purchase, .(A), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(B), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(C), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(D), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(E), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(F), summarize, avg=mean(age_oldest))
+ddply(train.purchase, .(G), summarize, avg=mean(age_oldest))
 
-summary(dfgraph[1]$gg)
-str(dfgraph[1])
+ddply(train.purchase, .(A), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(B), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(C), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(D), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(E), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(F), summarize, avg=mean(age_youngest))
+ddply(train.purchase, .(G), summarize, avg=mean(age_youngest))
+
+ddply(train.purchase, .(A), summarize, avg=mean(car_age))
+ddply(train.purchase, .(B), summarize, avg=mean(car_age))
+ddply(train.purchase, .(C), summarize, avg=mean(car_age))
+ddply(train.purchase, .(D), summarize, avg=mean(car_age))
+ddply(train.purchase, .(E), summarize, avg=mean(car_age))
+ddply(train.purchase, .(F), summarize, avg=mean(car_age))
+ddply(train.purchase, .(G), summarize, avg=mean(car_age))
+
+dcast(train.purchase, age_oldest~A, mean)
+histtable = apply(X=array(names(train.purchase)[c(4,8:17)]), MARGIN = 1, FUN = forLoopFunc)
+write.csv(rbind.fill(newdf[1]), "c:/histtbl1.csv")
+write.csv(rbind.fill(newdf[2]), "c:/histtbl2.csv")
+write.csv(rbind.fill(newdf[3]), "c:/histtbl3.csv")
+write.csv(rbind.fill(newdf[4]), "c:/histtbl4.csv")
+write.csv(rbind.fill(newdf[5]), "c:/histtbl5.csv")
+write.csv(rbind.fill(newdf[6]), "c:/histtbl6.csv")
+write.csv(rbind.fill(newdf[7]), "c:/histtbl7.csv")
+write.csv(rbind.fill(newdf[8]), "c:/histtbl8.csv")
+write.csv(rbind.fill(newdf[9]), "c:/histtbl9.csv")
+write.csv(rbind.fill(newdf[10]), "c:/histtbl10.csv")
+write.csv(rbind.fill(newdf[11]), "c:/histtbl11.csv")
+
 
 # could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
 # Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
 # AB: Neither acast nor dcast works for me.
+# try to load up reshape and try again. I also fixed the bugs in the function 2/4/17 #SC
 
 ##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
                                   "age_youngest","married_couple","C_previous","duration_previous")])
 
 #add numeric factors in place of categorical for correlation analysis #SC
+#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
+#code works as of 2/4/17 #SC
 train_cp = train
 
 state_factor = as.factor(train[,c("state")])
@@ -332,7 +387,6 @@ car_value_factor = as.factor(train[,c("car_value")])
 car_value_ranks <- rank(-table(car_value_factor), ties.method="first")
 train_cp$car_value_num <- data.frame(category=car_value_factor, rank=car_value_ranks[as.character(car_value_factor)])$rank
 
-#correlation matrix for numeric variables #SC -- AB: had to modify since we changed some from integer to factors
 sapply(train_cp, class)
 # 2, 8, 10, 12:14, 17, 25, 27, 28
 #cormat = cor(train_cp[c(2:4,7:10,12:17,27:28)], use="na.or.complete")
@@ -341,13 +395,48 @@ cormat_table <- as.data.frame(as.table(cormat))
 cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
 write.csv(cormat_table, "cormat_table.csv")
 
-#PCA #SC
+#PCA #SC -- AB: This no longer works since 'x' must be numeric
 train.pca <- prcomp(na.omit(train_cp[c(2:4,7:10,12:17,27:28)]),center = TRUE,scale. = TRUE)
 print(train.pca)
 summary(train.pca)
 plot(train.pca, type="l")
 
 write.csv(train.pca$rotation,"pca.csv")
+
+########### EDA Naive Models ###########
+# shopping_pt + day + time + state + location + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous + duration_previous + cost
+
+# Create tree model
+tree.x <- rpart(A ~ shopping_pt + day + location + group_size + homeowner + car_value +
+                  risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+                  duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
+tree.x # splits on cost and location
+prp(tree.x)
+fancyRpartPlot(tree.x,sub = "") # unreadable
+
+# Create LDA model--
+#model.lda <- lda(A ~ shopping_pt + day + homeowner, data = train)
+#+ day + time + state + location + group_size + homeowner + car_age +
+#  car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+#  duration_previous + cost
+
+#plot(model.lda, main = "LDA Model", cex = 0.90)
+
+# Use backward subset selection on model.lda--crashes RStudio
+#model.lda.bwd <- regsubsets(A ~ shopping_pt + day + state + location + group_size + homeowner + car_age +
+#                              car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+#                              duration_previous + cost, data = train, nvmax=5, method="backward")
+#summary(model.lda.bwd)
+
+# Create second LDA model using top selected variables
+#model.lda2 <- lda(A ~ , data = train)
+#plot(model.lda2)
+
+# Create RF model
+#model.RF <- randomForest(na.omit(A~.), data = train, mtry=5, ntree =25)
+#Error in na.fail.default: missing values in object
+#importance(model.RF)
+#varImpPlot(model.RF, main = "Random Forest Model: \n Variable Importance")
 
 #####################################
 ## Data manipulation for Model Build ## 
@@ -468,6 +557,36 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 # post.valid.log1.A <- predict(model.log1,train.purchase.m[validSubset,], type="response") # n.valid post probs
 # table((post.valid.log1.A>.1),train.purchase.m$A.change[validSubset])
 
+###################
+# Multinomial Regression -- 2/4/17 FP
+# Used instructions found here: http://r-statistics.co/Multinomial-Regression-With-R.html
+# predict function will not work on validation set, looking for help as to why.
+###################
+library(nnet)
+library(mlogit)
+multinomModel <- multinom(A ~ day + state + location + homeowner + car_value + married_couple + C_previous + lastQuoted_A, 
+                          data = train.purchase.m,
+                          subset = trainSubset)
+summary(multinomModel)
+predicted_scores <- predict(multinomModel, train.purchase.m[trainSubset,], "probs")
+head(predicted_scores)
+# predict function will not work on validation set, looking for help as to why#
+predicted_class <- predict(predicted_scores, train.purchase.m[validSubset,])
+table(predicted_class,train.purchase.m$A[validSubset])
+
+
+###################
+# K-Nearest Neighbors -- 2/4/17 FP
+# Error in knn - too many ties in knn
+###################
+library(class)
+?knn
+attach(train.purchase.m)
+train.X=cbind(train.purchase.m$homeowner[trainSubset],train.purchase.m$married_couple[trainSubset])
+test.X=cbind(train.purchase.m$homeowner[validSubset],train.purchase.m$married_couple[validSubset])
+knn.pred=knn(train.X,test.X,train.purchase.m$A[trainSubset],k=3)
+table(knn.pred,train.purchase.m$A[validSubset])
+mean(knn.pred==train.purchase.m$A[validSubset])
 
 ###################
 # LDA Classification Example 
