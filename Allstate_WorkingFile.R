@@ -414,6 +414,16 @@ tree.x # splits on cost and location
 prp(tree.x)
 fancyRpartPlot(tree.x,sub = "") # unreadable
 
+
+tree.G <- tree(G ~ shopping_pt + day + location + group_size + homeowner + car_value +
+    risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+    duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
+tree.x # splits on cost and location
+prp(tree.x)
+fancyRpartPlot(tree.x,sub = "") # unreadable
+
+
+
 # Create LDA model--
 #model.lda <- lda(A ~ shopping_pt + day + homeowner, data = train)
 #+ day + time + state + location + group_size + homeowner + car_age +
@@ -510,7 +520,8 @@ colSums(quoteChange_df,2)
 # A_change B_change C_change D_change E_change F_change G_change 
 # 6894     6392     6716     4927     6067     7039    13174 
 
-
+# study the changes G records
+changeG<-(subset(train.purchase.m,train.purchase.m$lastQuoted_G!=train.purchase.m$G))
 
 #####################################
 ## Impute missing values ##
@@ -751,14 +762,13 @@ error.tree.A.base
 # Option G TREE ###################
 
 
-x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
+x<-model.matrix(~  + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state ,
                 data=train.purchase.m[trainSubset,])
 y<-(train.purchase.m$G[trainSubset])
 
 library(tree)
 nobs<-length(trainSubset)
-tree.fit.G=tree(y~x, control = tree.control(nobs, mindev=.01))
+tree.fit.G=tree(y~x, control = tree.control(nobs, mindev=.001))
 
 plot(tree.fit.G)
 text(tree.fit.G,pretty=1)
@@ -819,19 +829,6 @@ error.tree.G.base
 # error.rf.A.base 
 
 
-# x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-#                   Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
-#                 data=train.purchase.m[validSubset,])
-# y<-(train.purchase.m$G[validSubset])
-# 
-# library(foreach)
-# library(caret)
-# rfParam <- expand.grid(ntree=500, importance=TRUE,mtry = 3)
-# rfParam <- expand.grid(mtry = 3)
-# 
-# m <- train(x, y, method="parRF", tuneGrid=rfParam)
-# 
-
 # Option G Model ###################
 model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                              Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4 ,
@@ -847,18 +844,55 @@ length(post.valid.rf.G)
 table(post.valid.rf.G,train.purchase.m$G[validSubset])
 error.rf.G <- round(mean(post.valid.rf.G!=train.purchase.m$G[validSubset]),4)
 error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
+confusionMatrix(post.valid.rf.G,train.purchase.m$G[validSubset],)
 
 error.rf.G
 error.rf.G.base 
 
-library(caret)
-confusionMatrix(post.valid.rf.G,train.purchase.m$G[validSubset],)
+# Option F Model ###################
+model.rf.F <- randomForest(F ~ (lastQuoted_F) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+    Quoted_F_minus2 + Quoted_F_minus3 + Quoted_F_minus4 ,
+  data=train.purchase.m,subset = trainSubset,ntrees=500) 
+model.rf.F
 
+#Var importance stats and plot
+randomForest::importance(model.rf.F)
+randomForest::varImpPlot(model.rf.F)
+
+post.valid.rf.F <- predict(model.rf.F, train.purchase.m[validSubset,]) 
+length(post.valid.rf.F)
+table(post.valid.rf.F,train.purchase.m$F[validSubset])
+error.rf.F <- round(mean(post.valid.rf.F!=train.purchase.m$F[validSubset]),4)
+error.rf.F.base <- round(mean(train.purchase.m$lastQuoted_F[validSubset]!=train.purchase.m$F[validSubset]),4)
+confusionMatrix(post.valid.rf.F,train.purchase.m$F[validSubset],)
+
+error.rf.F
+error.rf.F.base 
+
+# Option B Model ###################
+model.rf.B <- randomForest(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+    Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4 ,
+  data=train.purchase.m,subset = trainSubset,ntrees=500) 
+model.rf.B
+
+#Var importance stats and plot
+randomForest::importance(model.rf.B)
+randomForest::varImpPlot(model.rf.B)
+
+post.valid.rf.B <- predict(model.rf.B, train.purchase.m[validSubset,]) 
+length(post.valid.rf.B)
+table(post.valid.rf.B,train.purchase.m$B[validSubset])
+error.rf.B <- round(mean(post.valid.rf.B!=train.purchase.m$B[validSubset]),4)
+error.rf.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+confusionMatrix(post.valid.rf.B,train.purchase.m$B[validSubset],)
+
+error.rf.B
+error.rf.B.base 
 
 
 
 ###################
-# Boosting Model 
+# Boosting Model G
 ###################
 library(gbm)
 # gbm() with the option distribution="gaussian" for a regression problem; 
@@ -874,9 +908,9 @@ library(gbm)
 #                    avhv + incm + inca + plow + npro + tgif  + tdon + tlag , 
 #                  data=data.train.std.c,method = "gbm",trControl = fitControl,tuneGrid = myTuneGrid)
 
-#Commented out due to the time it takes to run the code
+#Commented out du[tre to the time it takes to run the code
 set.seed(1)
-model.boost.G=gbm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+model.boost.G=gbm(G ~ (lastQuoted_G)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                   Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
                 data=train.purchase.m[trainSubset,],
                 distribution="multinomial",
@@ -884,30 +918,40 @@ model.boost.G=gbm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost 
                 interaction.depth=4,
                 shrinkage = .01)
 
+model.boost.G.low=gbm(G ~ (lastQuoted_G)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+    Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+  data=train.purchase.m[(train.purchase.m[trainSubset,]$shopping_pt<5),],
+  distribution="multinomial",
+  n.trees=1000,
+  interaction.depth=4,
+  shrinkage = .01)
+
+interact.gbm(model.boost.G,data=train.purchase.m[trainSubset,],i.var=c('lastQuoted_G','cost'))
+
 # The summary() function produces a relative influence plot and also outputs the relative influence statistics.
 summary(model.boost.G)
-
 summaryBoost<-summary(model.boost.G)
-
 
 post.valid.boost.prob.G <- predict(model.boost.G, train.purchase.m[validSubset,],type='response',n.trees=1000) 
 post.valid.boost.G<-apply(post.valid.boost.prob.G, 1, which.max)
 length(post.valid.boost.G)
 head(post.valid.boost.G)
 
-
 table(post.valid.boost.G,train.purchase.m$G[validSubset])
 error.boost.G <- round(mean(post.valid.boost.G!=train.purchase.m$G[validSubset]),4)
 error.boost.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
-
 error.boost.G 
 error.boost.G.base 
+
 confusionMatrix(post.valid.boost.G,train.purchase.m$G[validSubset],)
 #plotting relative influence of variables
 summaryBoost<-summaryBoost[order(summaryBoost$rel.inf,decreasing=FALSE),]
 par(mar=c(3,10,3,3))
 barplot(t(summaryBoost$rel.inf),names.arg = summaryBoost$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
     
+plot(prop.table(table(train.purchase$shopping_pt[validSubset],post.valid.boost.G==train.purchase$G[validSubset])))
+plot(prop.table(table(train.purchase.m$shopping_pt,train.purchase.m$G==train.purchase.m$lastQuoted_G)))
+
 
 ###################
 # Boosting Model F
@@ -917,16 +961,6 @@ library(gbm)
 # gbm() for a classification problem, we would use distribution="bernoulli". 
 # The argument n.trees=5000 indicates that we want 5000 trees, and the option interaction.depth=x limits the depth of each tree.
 
-#Using this code to tune the GBM model. 
-#Commented out due to the time it takes to run the code
-# library(caret)
-# myTuneGrid <- expand.grid(n.trees = 500,interaction.depth = c(6,7),shrinkage = c(.001,.01,.1),n.minobsinnode=10)
-# fitControl <- trainControl(method = "repeatedcv", number = 3,repeats = 1, verboseIter = FALSE,returnResamp = "all")
-# myModel <- train(data.train.std.c$donr ~ reg1 + reg2 + reg3 + reg4 + home + chld + hinc + genf + wrat + 
-#                    avhv + incm + inca + plow + npro + tgif  + tdon + tlag , 
-#                  data=data.train.std.c,method = "gbm",trControl = fitControl,tuneGrid = myTuneGrid)
-
-#Commented out due to the time it takes to run the code
 set.seed(1)
 model.boost.F = gbm(
   F ~ (lastQuoted_F) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
