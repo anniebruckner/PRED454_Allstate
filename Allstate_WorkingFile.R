@@ -908,6 +908,71 @@ summaryBoost<-summaryBoost[order(summaryBoost$rel.inf,decreasing=FALSE),]
 par(mar=c(3,10,3,3))
 barplot(t(summaryBoost$rel.inf),names.arg = summaryBoost$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
     
+
+###################
+# Boosting Model F
+###################
+library(gbm)
+# gbm() with the option distribution="gaussian" for a regression problem; 
+# gbm() for a classification problem, we would use distribution="bernoulli". 
+# The argument n.trees=5000 indicates that we want 5000 trees, and the option interaction.depth=x limits the depth of each tree.
+
+#Using this code to tune the GBM model. 
+#Commented out due to the time it takes to run the code
+# library(caret)
+# myTuneGrid <- expand.grid(n.trees = 500,interaction.depth = c(6,7),shrinkage = c(.001,.01,.1),n.minobsinnode=10)
+# fitControl <- trainControl(method = "repeatedcv", number = 3,repeats = 1, verboseIter = FALSE,returnResamp = "all")
+# myModel <- train(data.train.std.c$donr ~ reg1 + reg2 + reg3 + reg4 + home + chld + hinc + genf + wrat + 
+#                    avhv + incm + inca + plow + npro + tgif  + tdon + tlag , 
+#                  data=data.train.std.c,method = "gbm",trControl = fitControl,tuneGrid = myTuneGrid)
+
+#Commented out due to the time it takes to run the code
+set.seed(1)
+model.boost.F = gbm(
+  F ~ (lastQuoted_F) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+    Quoted_F_minus2 + Quoted_F_minus3 + Quoted_F_minus4  ,
+  data = train.purchase.m[trainSubset,],
+  distribution = "multinomial",
+  n.trees = 1000,
+  interaction.depth = 4,
+  shrinkage = .01
+)
+
+# The summary() function produces a relative influence plot and also outputs the relative influence statistics.
+summary(model.boost.F)
+
+summaryBoost <- summary(model.boost.F)
+
+
+post.valid.boost.prob.F <-
+  predict(model.boost.F, train.purchase.m[validSubset,],type = 'response',n.trees =
+            1000)
+post.valid.boost.F <- apply(post.valid.boost.prob.F, 1, which.max) - 1
+length(post.valid.boost.F)
+head(post.valid.boost.F)
+
+
+table(post.valid.boost.F,train.purchase.m$F[validSubset])
+error.boost.F <-
+  round(mean(post.valid.boost.F != train.purchase.m$F[validSubset]),4)
+error.boost.F.base <-
+  round(mean(train.purchase.m$lastQuoted_F[validSubset] != train.purchase.m$F[validSubset]),4)
+
+error.boost.F
+error.boost.F.base
+confusionMatrix(post.valid.boost.F,train.purchase.m$F[validSubset],)
+#plotting relative influence of variables
+summaryBoost <-
+  summaryBoost[order(summaryBoost$rel.inf,decreasing = FALSE),]
+par(mar = c(3,10,3,3))
+barplot(
+  t(summaryBoost$rel.inf),names.arg = summaryBoost$var ,las = 2,col = "darkblue",main = "Relative Influence",horiz =
+    TRUE
+)
+
+
+
+
 ###################
 # SVM
 ###################
@@ -1020,15 +1085,17 @@ test.m$duration_previous[is.na(test.m$duration_previous)]<-median(train.purchase
 # 
 
 
+#################
+# PREDICT G on test set
+#################
+
 #Predict G on the test set using Random Forest #PB  0.53955
-predictG <- predict(model.rf.G, test.m, type="class")
-
+predictG <- predict(model.rf.G, test.m, type = "class")
 #Predict G on the test set using Boosted Tree  #PB   0.54045
-predictG <- predict(model.boost.G, test.m,type='response',n.trees=1000) 
-predictG<-apply(predictG, 1, which.max)
+predictG <-predict(model.boost.G, test.m,type = 'response',n.trees = 1000)
+predictG <- apply(predictG, 1, which.max)
 
-
-predictResults<-data.frame(test.m$customer_ID,predictG)
+predictResultsG<-data.frame(test.m$customer_ID,predictG)
 test.m$predictG<-predictG
 
 # hard coded rules
@@ -1036,15 +1103,43 @@ test.m$predictG<-predictG
 predictResults$predictG[test.m$state=="FL" & test.m$predictG=="2"]<-as.factor("3")
 #add option F - NY and CT rules
 
-#replacing last quoted G with predicted G #PB 
-predictG_Submit<-merge(x=lastQuoteSubmit,y=predictResults,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
-predictG_Submit$plan<-paste(substring(predictG_Submit$plan,first=1,last=6),predictG_Submit$predictG,sep="")
-predictG_Submit$predictG<-NULL
-head(predictG_Submit)
+predict_Submit<-merge(x=lastQuoteSubmit,y=predictResultsG,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
+head(predict_Submit)
 
+
+
+
+
+#################
+# PREDICT F on test set
+#################
+
+#Predict F on the test set using Random Forest #PB  
+# predictF <- predict(model.rf.F, test.m, type = "class")
+#Predict F on the test set using Boosted Tree  #PB   
+predictF <-predict(model.boost.F, test.m,type = 'response',n.trees = 1000)
+predictF <- apply(predictF, 1, which.max)-1
+
+predictResultsF<-data.frame(test.m$customer_ID,predictF)
+
+# hard coded rules
+#add option F - NY and CT rules
+predict_Submit<-merge(x=predict_Submit,y=predictResultsF,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
+head(predict_Submit)
+
+#replacing last quoted G with predicted G #PB 
+predict_Submit$predict.plan<-predictG_Submit$plan
+predict_Submit$predict.plan<-paste(substring(predict_Submit$predict.plan,first=1,last=6),predict_Submit$predictG,sep="")
+head(predict_Submit)
+
+# #replacing last quoted F with predicted F #PB 
+# predict_Submit$predict.plan<-paste(substring(predict_Submit$predict.plan,first=1,last=5),predict_Submit$predictF,substring(predict_Submit$predict.plan,first=7,last=7),sep="")
+# head(predict_Submit)
 
 
 #view sample before exporting to csv #PB  
-head(predictG_Submit)
-write.csv(predictG_Submit, file=file.path(path,"submit_GBM_1.csv"), row.names=FALSE, quote=FALSE)
+predict_Submit_Final<-(predict_Submit[c('customer_ID','predict.plan')])
+names(predict_Submit_Final)<- c('customer_ID','plan')
+head(predict_Submit_Final)
+write.csv(predict_Submit_Final, file=file.path(path,"submit_GBM_FG_2.csv"), row.names=FALSE, quote=FALSE)
 
