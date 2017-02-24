@@ -565,11 +565,11 @@ multinomModel <- multinom(A ~ day + state + location + homeowner + car_value + m
                           subset = trainSubset)
 proc.time() - ptm # Stop the clock
 #user   system  elapsed 
-#3015.211  117.202 3612.443 -- about 1 hr to run. AB
+#3015.211  117.202 3612.443 -- AB: about 1 hour to run
 # Got this error:
 #Error in nnet.default(X, Y, w, mask = mask, size = 0, skip = TRUE, softmax = TRUE,  : 
 #                        too many (18918) weights
-summary(multinomModel)
+summary(multinomModel) # AB: Error in summary(multinomModel) : object 'multinomModel' not found
 predicted_scores <- predict(multinomModel, train.purchase.m[trainSubset,], "probs")
 head(predicted_scores)
 # predict function will not work on validation set, looking for help as to why#
@@ -581,8 +581,7 @@ table(predicted_class,train.purchase.m$A[validSubset])
 # K-Nearest Neighbors -- 2/4/17 FP
 # Error in knn - too many ties in knn
 ###################
-library(class)
-?knn
+
 attach(train.purchase.m)
 train.X=cbind(train.purchase.m$homeowner[trainSubset],train.purchase.m$married_couple[trainSubset])
 test.X=cbind(train.purchase.m$homeowner[validSubset],train.purchase.m$married_couple[validSubset])
@@ -601,9 +600,13 @@ model.lda1 <- lda(x ~ y,data.train)
 post.valid.lda1 <- predict(model.lda1, data.train)$posterior[,2] 
 
 #
+ptm <- proc.time() # Start the clock!
 model.lda0.a <- lda(A ~ cost + Quoted_A_minus2 + Quoted_A_minus3,
                       data = train.purchase.m,
                       subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#0.201   0.185   0.856
 post.train.lda0.a <- predict(object=model.lda0.a, newdata = train.purchase.m[trainSubset,])
 plot(model.lda0.a, col = as.integer(train.purchase.m$A[-validSubset]), dimen = 2) #scatterplot with colors
 table(post.train.lda0.a$class, train.purchase.m$A[trainSubset])
@@ -615,9 +618,13 @@ plot(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #how well did we 
 
 ####Option A -- 2/4/17 DT
 #few variables in the model
+ptm <- proc.time() # Start the clock!
 model.lda1.a <- lda(A ~ cost + lastQuoted_A + Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
                     data = train.purchase.m,
                     subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#0.357   0.074   0.435
 post.train.lda1.a <- predict(object = model.lda1.a, data=train.purchase.m[testSubset,])
 table(post.train.lda1.a$class,train.purchase.m$A[trainSubset])
 
@@ -627,14 +634,20 @@ mean(post.valid.lda1.a$class==train.purchase.m$A[validSubset]) #what percent did
 plot(post.valid.lda1.a$class, train.purchase.m$A[validSubset]) #how well did we predict validSubset?
 
 #kept running out of memory with bigger models
+ptm <- proc.time() # Start the clock!
 model.lda2.a <- lda(A ~ shopping_pt + state  + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + cost +
   lastQuoted_A + Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
   data = train.purchase.m,
   subset = trainSubset)
-plot(model.lda2, col = as.integer(train.purchase.m$A[-validSubset]), dimen = 2) #scatterplot with colors
-post.train.lda2 <- predict(object = model.lda2, data = train.purchase.m[trainSubset,])
+#Warning message:
+#  In lda.default(x, grouping, ...) : variables are collinear
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#2.569   0.372   3.024
+plot(model.lda2.a, col = as.integer(train.purchase.m$A[-validSubset]), dimen = 2) #scatterplot with colors
+post.train.lda2 <- predict(object = model.lda2.a, data = train.purchase.m[trainSubset,])
 
-post.valid.lda2 <- predict(object = model.lda2, newdata=train.purchase.m[validSubset,]) #make sure you use newdata here, NOT data (data takes the inverse of the specified value)
+post.valid.lda2 <- predict(object = model.lda2.a, newdata=train.purchase.m[validSubset,]) #make sure you use newdata here, NOT data (data takes the inverse of the specified value)
 
 table(post.valid.lda2$class,train.purchase.m$A[validSubset]) #look at misclassification
 mean(post.valid.lda2$class==train.purchase.m$A[validSubset]) #what percent did we predict successfully?
@@ -643,9 +656,13 @@ plot(post.valid.lda2$class, train.purchase.m$A[validSubset]) #how well did we pr
 
 ###Option B -- 2/4/17 DT
 #very basic model
+ptm <- proc.time() # Start the clock!
 model.lda0.b <- lda(B ~ cost + Quoted_B_minus2 + Quoted_B_minus3,
                       data = train.purchase.m,
                       subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#   user  system elapsed 
+#0.196   0.115   0.508 
 post.train.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[trainSubset,])
 plot(model.lda0.b, col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
 table(post.train.lda0.b$class, train.purchase.m$B[trainSubset])
@@ -658,9 +675,13 @@ plot(post.valid.lda0.b$class, train.purchase.m$B[validSubset]) #how well did we 
 
 
 #few variables in the model
+ptm <- proc.time() # Start the clock!
 model.lda1.b <- lda(B ~ cost + lastQuoted_B + Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4,
                     data = train.purchase.m,
                     subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#0.256   0.055   0.312
 post.train.lda1.b <- predict(object = model.lda1.b, data=train.purchase.m[testSubset,])
 table(post.train.lda1.b$class,train.purchase.m$B[trainSubset])
 mean(post.train.lda1.b$class==train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
@@ -671,9 +692,13 @@ mean(post.valid.lda1.b$class==train.purchase.m$B[validSubset]) #what percent did
 plot(post.valid.lda1.b$class, train.purchase.m$B[validSubset]) #how well did we predict validSubset?
 
 #without any prior quote information
+ptm <- proc.time() # Start the clock!
 model.lda2.b <- lda(B ~ shopping_pt + state  + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + cost ,
   data = train.purchase.m,
   subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#2.093   0.333   2.595 
 plot(model.lda2.b , col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
 post.train.lda2.b <- predict(object = model.lda2.b , data = train.purchase.m[trainSubset,])
 table(post.train.lda2.b$class,train.purchase.m$B[trainSubset])
@@ -687,10 +712,14 @@ plot(post.valid.lda2.b$class, train.purchase.m$B[validSubset]) #how well did we 
 
 
 #kept running out of memory with bigger models
+ptm <- proc.time() # Start the clock!
 model.lda3.b <- lda(B ~ shopping_pt + state  + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + cost +
   lastQuoted_B + Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4,
   data = train.purchase.m,
   subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#2.259   0.328   2.600
 plot(model.lda3.b , col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
 post.train.lda3.b <- predict(object = model.lda3.b , data = train.purchase.m[trainSubset,])
 table(post.train.lda3.b$class,train.purchase.m$B[trainSubset])
@@ -721,10 +750,12 @@ table(qda.class ,data.test$response)
 #PB
 # Option A TREE ###################
 
-library(tree)
+ptm <- proc.time() # Start the clock!
 tree.fit.A=tree(A ~ risk_factor + lastQuoted_A ,
                 data=train.purchase.m,subset = trainSubset)
-
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#0.189   0.024   0.228 
 plot(tree.fit.A)
 text(tree.fit.A,pretty=1)
 
@@ -743,8 +774,8 @@ plot(cv.tree.fit.A$k,cv.tree.fit.A$dev,type="b")
 
 post.valid.tree.A <- predict(tree.fit.A, train.purchase.m[validSubset,], type="class") # n.valid post probs
 length(post.valid.tree.A)
-table(post.valid.tree,train.purchase.m$A[validSubset])
-error.tree.A <- round(mean(post.valid.tree!=train.purchase.m$A[validSubset]),4)
+table(post.valid.tree.A,train.purchase.m$A[validSubset])
+error.tree.A <- round(mean(post.valid.tree.A!=train.purchase.m$A[validSubset]),4)
 error.tree.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
 
 error.tree.A
@@ -752,13 +783,15 @@ error.tree.A.base
 
 # Option G TREE ###################
 
-
+ptm <- proc.time() # Start the clock!
 x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                   Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
                 data=train.purchase.m[trainSubset,])
+proc.time() - ptm # Stop the clock
+#   user  system elapsed 
+#0.135   0.043   0.181
 y<-(train.purchase.m$G[trainSubset])
 
-library(tree)
 nobs<-length(trainSubset)
 tree.fit.G=tree(y~x, control = tree.control(nobs, mindev=.01))
 
@@ -778,9 +811,13 @@ plot(cv.tree.fit.G$k,cv.tree.fit.G$dev,type="b")
 # plot(prune.tree)
 # text(prune.tree,pretty=1)
 
+ptm <- proc.time() # Start the clock!
 x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                   Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
                 data=train.purchase.m[validSubset,])
+proc.time() - ptm # Stop the clock
+#   user  system elapsed 
+#0.065   0.083   0.173 
 y<-(train.purchase.m$G[validSubset])
 
 post.valid.tree.G <- predict(tree.fit.G, data.frame(x), type="class") # n.valid post probs
@@ -835,9 +872,14 @@ error.tree.G.base
 # 
 
 # Option G Model ###################
+ptm <- proc.time() # Start the clock!
 model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                              Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4 ,
                            data=train.purchase.m,subset = trainSubset,ntrees=500) 
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#730.899   6.797 742.187 
+
 model.rf.G
 
 #Var importance stats and plot
@@ -853,7 +895,6 @@ error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.
 error.rf.G
 error.rf.G.base 
 
-library(caret)
 confusionMatrix(post.valid.rf.G,train.purchase.m$G[validSubset],)
 
 
@@ -862,7 +903,7 @@ confusionMatrix(post.valid.rf.G,train.purchase.m$G[validSubset],)
 ###################
 # Boosting Model 
 ###################
-library(gbm)
+
 # gbm() with the option distribution="gaussian" for a regression problem; 
 # gbm() for a classification problem, we would use distribution="bernoulli". 
 # The argument n.trees=5000 indicates that we want 5000 trees, and the option interaction.depth=x limits the depth of each tree.
@@ -877,6 +918,7 @@ library(gbm)
 #                  data=data.train.std.c,method = "gbm",trControl = fitControl,tuneGrid = myTuneGrid)
 
 #Commented out due to the time it takes to run the code
+ptm <- proc.time() # Start the clock!
 set.seed(1)
 model.boost.G=gbm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                   Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
@@ -885,7 +927,9 @@ model.boost.G=gbm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost 
                 n.trees=1000,
                 interaction.depth=4,
                 shrinkage = .01)
-
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#283.950   4.094 302.237
 # The summary() function produces a relative influence plot and also outputs the relative influence statistics.
 summary(model.boost.G)
 
@@ -914,7 +958,7 @@ barplot(t(summaryBoost$rel.inf),names.arg = summaryBoost$var ,las=2,col="darkblu
 ###################
 # Boosting Model F
 ###################
-library(gbm)
+
 # gbm() with the option distribution="gaussian" for a regression problem; 
 # gbm() for a classification problem, we would use distribution="bernoulli". 
 # The argument n.trees=5000 indicates that we want 5000 trees, and the option interaction.depth=x limits the depth of each tree.
@@ -929,6 +973,7 @@ library(gbm)
 #                  data=data.train.std.c,method = "gbm",trControl = fitControl,tuneGrid = myTuneGrid)
 
 #Commented out due to the time it takes to run the code
+ptm <- proc.time() # Start the clock!
 set.seed(1)
 model.boost.F = gbm(
   F ~ (lastQuoted_F) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
@@ -939,7 +984,7 @@ model.boost.F = gbm(
   interaction.depth = 4,
   shrinkage = .01
 )
-
+proc.time() - ptm # Stop the clock
 # The summary() function produces a relative influence plot and also outputs the relative influence statistics.
 summary(model.boost.F)
 
