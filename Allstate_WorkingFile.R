@@ -53,9 +53,9 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 # set to your local directory. We will each have to edit this line of code.
 #path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
-#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
-path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
-setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
+path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+# path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+# setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
@@ -762,7 +762,7 @@ table(qda.class ,data.test$response)
 # Option A TREE ###################
 
 ptm <- proc.time() # Start the clock!
-tree.fit.A=tree(A ~ risk_factor + lastQuoted_A ,
+tree.fit.A=tree(A ~ . ,
                 data=train.purchase.m,subset = trainSubset)
 proc.time() - ptm # Stop the clock
 #user  system elapsed 
@@ -794,19 +794,17 @@ error.tree.A.base
 
 # Option G TREE ###################
 
-
-
 ptm <- proc.time() # Start the clock!
 x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
+    Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
                 data=train.purchase.m[trainSubset,])
-proc.time() - ptm # Stop the clock
-#   user  system elapsed 
-#0.135   0.043   0.181
-
 y<-(train.purchase.m$G[trainSubset])
 nobs<-length(trainSubset)
-tree.fit.G=tree(y~x, control = tree.control(nobs, mindev=.001))
+tree.fit.G=tree(y~x, control = tree.control(nobs, mindev=.0001))
+
+proc.time() - ptm # Stop the clock
+# user  system elapsed 
+# 4.299   0.313   4.654 
 
 plot(tree.fit.G)
 text(tree.fit.G,pretty=1)
@@ -824,23 +822,29 @@ plot(cv.tree.fit.G$k,cv.tree.fit.G$dev,type="b")
 # plot(prune.tree)
 # text(prune.tree,pretty=1)
 
+#Run the tree model on the validaiton set
 ptm <- proc.time() # Start the clock!
 x<-model.matrix(~  (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
-                data=train.purchase.m[validSubset,])
-proc.time() - ptm # Stop the clock
-#   user  system elapsed 
-#0.065   0.083   0.173 
+    Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4, 
+  data=train.purchase.m[validSubset,])
 y<-(train.purchase.m$G[validSubset])
+nobs<-length(validSubset)
 
 post.valid.tree.G <- predict(tree.fit.G, data.frame(x), type="class") # n.valid post probs
 length(post.valid.tree.G)
+proc.time() - ptm # Stop the clock
+#   user  system elapsed 
+#0.065   0.083   0.173 
+
 table(post.valid.tree.G,train.purchase.m$G[validSubset])
 error.tree.G <- round(mean(post.valid.tree.G!=train.purchase.m$G[validSubset]),4)
 error.tree.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
 
 error.tree.G
 error.tree.G.base 
+
+confusionMatrix(post.valid.tree.G,train.purchase.m$G[validSubset],reference = )
+
 
 
 # ###################
@@ -879,6 +883,7 @@ model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_valu
 proc.time() - ptm # Stop the clock
 #user  system elapsed 
 #730.899   6.797 742.187 
+
 
 model.rf.G
 
@@ -1074,16 +1079,30 @@ barplot(
 ###################
 # SVM
 ###################
-# library(e1071)
+library(e1071)
 # 
-# svmfit.G=svm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-#              Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
-#            data=train.purchase.m[train.purchase.m$part=="train",],
-#            kernel="radial",  
-#            gamma=.03125, 
-#            cost=10,
-#            probability =TRUE)
-# summary(svmfit.G)
+
+# using a sample of the training set to fit an SVM model.           #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] # sample size = 97009 customers purchase a policy
+set.seed(1233) # set random number generator seed to enable
+# repeatability of results
+svm.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.svm<-train.purchase.m[train.purchase.m$part=="train",][svm.sample,] 
+dim(train.purchase.m.svm)
+
+ptm <- proc.time() # Start the clock!
+svmfit.G=svm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+             Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+           data=train.purchase.m.svm,
+           kernel="linear",  
+           gamma=1, 
+           cost=1,
+           probability =TRUE)
+summary(svmfit.G)
+proc.time() - ptm # Stop the clock
+
+# user  system elapsed 
+# 156.099   1.407 158.419 
 
 
 # #use this code to tune SVM using cross validation. 
@@ -1096,14 +1115,34 @@ barplot(
 
 post.valid.svm.G<-predict(svmfit.G,train.purchase.m[validSubset,])
 length(post.valid.svm.G)
-
 table(post.valid.svm.G,train.purchase.m$G[validSubset])
 error.svm.G <- round(mean(post.valid.svm.G!=train.purchase.m$G[validSubset]),4)
 error.svm.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
-
 error.svm.G 
 error.svm.G.base 
+# > error.svm.G 
+# [1] 0.1363
 
+# ptm <- proc.time() # Start the clock!
+# svmfit.G.radial=svm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#     Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+#   data=train.purchase.m.svm,
+#   kernel="radial",  
+#   gamma=1, 
+#   cost=1,
+#   probability =TRUE)
+# summary(svmfit.G.radial)
+# proc.time() - ptm # Stop the clock
+# 
+# post.valid.svm.G.radial<-predict(svmfit.G.radial,train.purchase.m[validSubset,])
+# length(post.valid.svm.G.radial)
+# table(post.valid.svm.G.radial,train.purchase.m$G[validSubset])
+# error.svm.G.radial <- round(mean(post.valid.svm.G.radial!=train.purchase.m$G[validSubset]),4)
+# error.svm.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
+# error.svm.G.radial
+# error.svm.G.base 
+# > error.svm.G.radial
+# [1] 0.2785
 
 ###################
 # ## Data manipulation for test set ## 
@@ -1172,15 +1211,6 @@ test.m$C_previous[is.na(test.m$C_previous)]<-as.factor((which.max(table(train.pu
 test.m$duration_previous[is.na(test.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
 
 
-# #Predict A on the test set #PB
-# predictA <- predict(model.rf.A, test.m, type="class") 
-# predictResults<-data.frame(test.m$customer_ID,predictA)
-# 
-# #replacing last quoted A with predicted A #PB #0.53602.
-# predictA_Submit<-merge(x=lastQuoteSubmit,y=predictResults,by.x=c("customer_ID"),by.y=c("test.m.customer_ID"))
-# predictA_Submit$plan<-(paste(predictA_Submit$predictA,substring(predictA_Submit$plan,first=2,last=7),sep=""))
-# predictA_Submit$predictA<-NULL
-# 
 
 
 #################
