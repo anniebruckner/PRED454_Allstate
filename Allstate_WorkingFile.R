@@ -34,7 +34,9 @@ list.of.packages <- c("doBy"
                       ,"plyr"
                       ,"maps"
                       ,"reshape"
-                      ,"reshape2")
+                      ,"reshape2"
+                      ,"nnet"
+                      ,"mlogit")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -157,7 +159,7 @@ barplot(table(train$day),main="Frequency of Site Visits by Day",ylab=ylab.box,xl
 barplot(table(train$C_previous),main="Frequency by Policy Option C",ylab=ylab.box,xlab="Policy Option C Choices (0=nothing)",col=col.bar)
 barplot(table(train$record_type),main="Frequency of Record Types",ylab=ylab.box,xlab="0 = Shopping Point, 1 = Purchase Point",col=col.bar)
 barplot(table(train$homeowner),main="Frequency by Homeowner", ylab=ylab.box,xlab="0 = Not Homeowner, 1 = Homeowner",col=col.bar)
-barplot(table(train$married_couple),main="Frequency by Marital Status",ylab=ylab.box,xlab="0 = Married, 1 = Not Married",col=col.bar)
+barplot(table(train$married_couple),main="Frequency by Marital Status",ylab=ylab.box,xlab="0 = Not Married, 1 = Married",col=col.bar)
 barplot(table(train$risk_factor),main="Frequency by Risk Factor",ylab=ylab.box,xlab="Risk Factor Levels",col=col.bar)
 barplot(table(train$shopping_pt),main="Frequency by Shopping Point",ylab=ylab.box,xlab="Shopping Point Depth",col=col.bar)
 barplot(table(train$time),main="Frequency of Site Visits by Time of Day",ylab=ylab.box,xlab="Time (HH:MM)",col=col.bar,border=NA)
@@ -364,12 +366,6 @@ write.csv(rbind.fill(newdf[9]), "c:/histtbl9.csv")
 write.csv(rbind.fill(newdf[10]), "c:/histtbl10.csv")
 write.csv(rbind.fill(newdf[11]), "c:/histtbl11.csv")
 
-
-# could not find function "cast" -- AB: though reshape2 is installed, we must use acast or dcast per ?cast
-# Use ‘acast’ or ‘dcast’ depending on whether you want vector/matrix/array output or data frame output.
-# AB: Neither acast nor dcast works for me.
-# try to load up reshape and try again. I also fixed the bugs in the function 2/4/17 #SC
-
 ##uniquechar
 train.uniquechar = unique(train[c("customer_ID","state", "group_size","homeowner","car_age","car_value","risk_factor","age_oldest",
                                   "age_youngest","married_couple","C_previous","duration_previous")])
@@ -396,12 +392,12 @@ cormat_table <- cormat_table[order(abs(cormat_table$Freq),decreasing = TRUE),]
 write.csv(cormat_table, "cormat_table.csv")
 
 #PCA #SC -- AB: This no longer works since 'x' must be numeric
-train.pca <- prcomp(na.omit(train_cp[c(2:4,7:10,12:17,27:28)]),center = TRUE,scale. = TRUE)
-print(train.pca)
-summary(train.pca)
-plot(train.pca, type="l")
+#train.pca <- prcomp(na.omit(train_cp[c(2:4,7:10,12:17,27:28)]),center = TRUE,scale. = TRUE)
+#print(train.pca)
+#summary(train.pca)
+#plot(train.pca, type="l")
 
-write.csv(train.pca$rotation,"pca.csv")
+#write.csv(train.pca$rotation,"pca.csv")
 
 ########### EDA Naive Models ###########
 # shopping_pt + day + time + state + location + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous + duration_previous + cost
@@ -445,7 +441,7 @@ fancyRpartPlot(tree.x,sub = "") # unreadable
 
 train.purchase.m<-train.purchase
 
-#Adding previous quorted plans to train.purchase.m data frame #PB
+#Adding previous quoted plans to train.purchase.m data frame #PB
 train.purchase.m$purchaseMinus_1<-train.purchase.m$shopping_pt-1
 train.purchase.m$purchaseMinus_2<-train.purchase.m$shopping_pt-2
 train.purchase.m$purchaseMinus_3<-train.purchase.m$shopping_pt-3
@@ -562,11 +558,17 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 # Used instructions found here: http://r-statistics.co/Multinomial-Regression-With-R.html
 # predict function will not work on validation set, looking for help as to why.
 ###################
-library(nnet)
-library(mlogit)
+
+ptm <- proc.time() # Start the clock!
 multinomModel <- multinom(A ~ day + state + location + homeowner + car_value + married_couple + C_previous + lastQuoted_A, 
                           data = train.purchase.m,
                           subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#user   system  elapsed 
+#3015.211  117.202 3612.443 -- about 1 hr to run. AB
+# Got this error:
+#Error in nnet.default(X, Y, w, mask = mask, size = 0, skip = TRUE, softmax = TRUE,  : 
+#                        too many (18918) weights
 summary(multinomModel)
 predicted_scores <- predict(multinomModel, train.purchase.m[trainSubset,], "probs")
 head(predicted_scores)
