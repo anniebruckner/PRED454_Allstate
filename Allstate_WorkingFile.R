@@ -36,7 +36,8 @@ list.of.packages <- c("doBy"
                       ,"reshape"
                       ,"reshape2"
                       ,"nnet"
-                      ,"mlogit")
+                      ,"mlogit"
+                      ,"e1071")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -1036,6 +1037,8 @@ model.boost.F = gbm(
   shrinkage = .01
 )
 proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#264.268   2.882 270.168 
 # The summary() function produces a relative influence plot and also outputs the relative influence statistics.
 summary(model.boost.F)
 
@@ -1074,8 +1077,8 @@ barplot(
 ###################
 # SVM
 ###################
-# library(e1071)
-# 
+# ptm <- proc.time() # Start the clock!
+# set.seed(1)
 # svmfit.G=svm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
 #              Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
 #            data=train.purchase.m[train.purchase.m$part=="train",],
@@ -1083,6 +1086,7 @@ barplot(
 #            gamma=.03125, 
 #            cost=10,
 #            probability =TRUE)
+#proc.time() - ptm # Stop the clock
 # summary(svmfit.G)
 
 
