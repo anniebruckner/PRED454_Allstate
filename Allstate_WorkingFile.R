@@ -71,10 +71,46 @@ summary(train) # some missing data
 
 # Check for NAs
 colSums(is.na(train))[colSums(is.na(train)) > 0]
+# <---Ahmar: Start of missing values Impute -------------->
+# Check for NAs %ages
+round(colSums(is.na(train))[colSums(is.na(train)) > 0] * 100/ dim(train)[1],2)
 
 # variables with missing data:
 # risk_factor   C_previous    duration_previous 
 # 240418        18711         18711
+# variable with missing data in %age:
+#risk_factor        C_previous duration_previous 
+#36.14              2.81              2.81 
+
+# Finding association between C-previous & duration_previous
+table(train$C_previous,train$duration_previous, exclude =NULL)
+
+table(train$C_previous, exclude=NULL)
+table(train$risk_factor, exclude=NULL)
+
+# FInding association between risk_factor and other variables.
+set.seed(1)
+tree.x <- rpart(risk_factor ~ car_value + homeowner+married_couple+car_age+age_oldest + age_youngest + duration_previous+group_size    , data = train, method = "class")
+tree.x # splits on age_oldest
+prp(tree.x)
+fancyRpartPlot(tree.x,main="Risk Factor Association", sub = "   ", tweak=1, palettes=c( "YlOrRd")) # unreadable
+
+# Imputing missing values
+# risk_factor
+train$risk_factor_imp = train$risk_factor
+train$risk_factor_imp[is.na(train$risk_factor_imp) & train$age_oldest >=58] <- 1;table(train$risk_factor_imp, exclude=NULL)
+train$risk_factor_imp[is.na(train$risk_factor_imp) & train$age_oldest>=22] <- 4;table(train$risk_factor_imp, exclude=NULL)
+train$risk_factor_imp[is.na(train$risk_factor_imp) & train$age_oldest<22] <- 3;table(train$risk_factor_imp, exclude=NULL)
+
+# C_previous
+train$C_previous_imp <- train$C_previous
+train$C_previous_imp[is.na(train$C_previous_imp)] <- 0;table(train$C_previous_imp, exclude=NULL)
+
+# duration_previous
+train$duration_previous_imp <- train$duration_previous
+train$duration_previous_imp[is.na(train$duration_previous_imp)] <- 0;table(train$duration_previous_imp, exclude=NULL)
+
+# <----------------- End of Missing Impute ----------------> 
 
 # setting variable types, please feel free to change if you think this is incorrect. #PB
 # Shouldn't record_type, state, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
@@ -524,9 +560,15 @@ changeG<-(subset(train.purchase.m,train.purchase.m$lastQuoted_G!=train.purchase.
 ## Impute missing values ##
 #####################################
 #we could use a decision tree to impute missing values. I am using the median to get the models working. Please feel free to change #PB
-train.purchase.m$risk_factor[is.na(train.purchase.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
-train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-as.factor((which.max(table(train.purchase.m$C_previous))))
-train.purchase.m$duration_previous[is.na(train.purchase.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
+# Ahmar: I have added code in the Data Quality section to identify relationship using tree and also created new variables
+# with name like _imp for 3 variables. If we want to stick with original names of variables then following code will work.
+#train.purchase.m$risk_factor[is.na(train.purchase.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
+#train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-as.factor((which.max(table(train.purchase.m$C_previous))))
+#train.purchase.m$duration_previous[is.na(train.purchase.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
+
+train.purchase.m$risk_factor <- train.purchase.m$risk_factor_imp 
+train.purchase.m$C_previous <- train.purchase.m$C_previous_imp
+train.purchase.m$duration_previous <- train.purchase.m$duration_previous_imp
 
 
 #####################################
