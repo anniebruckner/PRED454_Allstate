@@ -786,16 +786,6 @@ summary(svmfit.G)
 # user  system elapsed 
 # 156.099   1.407 158.419 
 
-# ### Use this code to tune SVM using cross validation. ###
-# myTuneGrid <- expand.grid(sigma=2^c(-25,-5,-1),C=10)
-# fitControl <- trainControl(method = "cv", number = 5,repeats = 1, verboseIter = FALSE,returnResamp = "all",classProbs = TRUE)
-# myModel <- train(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-# Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
-# data=train.purchase.m.svm, method = "svmLinear",trControl = fitControl,tuneGrid = myTuneGrid)
-
-
-
-
 # Predict SVM on validation set
 post.valid.svm.G<-predict(svmfit.G,train.purchase.m[validSubset,])
 length(post.valid.svm.G)
@@ -811,11 +801,6 @@ error.svm.G
 #Compare against the misclassification rate for the base model 
 error.svm.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
 error.svm.G.base 
-
-x<-model.matrix(~train.purchase.m.svm$risk_factor + train.purchase.m.svm$car_age + train.purchase.m.svm$car_value + train.purchase.m.svm$cost + train.purchase.m.svm$age_oldest + train.purchase.m.svm$age_youngest + 
-    train.purchase.m.svm$day + train.purchase.m.svm$shopping_pt + train.purchase.m.svm$state +
-    train.purchase.m.svm$Quoted_G_minus2 + train.purchase.m.svm$Quoted_G_minus3 + train.purchase.m.svm$Quoted_G_minus4)
-
 
 ##########################################################################
 ## Option *A* Models ##
