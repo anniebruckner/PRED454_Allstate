@@ -708,13 +708,31 @@ svm.sample <- sample(n, round(.25*n)) # randomly sample 25% test
 train.purchase.m.svm<-train.purchase.m[train.purchase.m$part=="train",][svm.sample,] 
 dim(train.purchase.m.svm)
 
+
+
+# # We can perform cross-validation using tune() to select the best choice of
+# # gamma and cost for an SVM with a radial kernel:
+# set.seed(1)
+# control <- tune.control(nrepeat = 5,cross = 5)
+# tune.out = tune(
+#   svm,G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#     Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+#   data = train.purchase.m.svm,
+#   kernel = "linear",
+#   ranges = list(cost = c(.01,.1,.5,1),
+#     gamma = c(1)),
+#   tunecontrol = control
+# )
+# summary(tune.out)
+
+
 #Fit a linear SVM Model
 ptm <- proc.time() # Start the clock!
 svmfit.G=svm(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
     Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
   data=train.purchase.m.svm,
   kernel="linear",  
-  gamma=1, 
+  gamma=.01, 
   cost=1,
   probability =TRUE)
 proc.time() - ptm # Stop the clock
@@ -733,6 +751,9 @@ summary(svmfit.G)
 # Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
 # data=train.purchase.m.svm, method = "svmLinear",trControl = fitControl,tuneGrid = myTuneGrid)
 
+
+
+
 # Predict SVM on validation set
 post.valid.svm.G<-predict(svmfit.G,train.purchase.m[validSubset,])
 length(post.valid.svm.G)
@@ -749,6 +770,9 @@ error.svm.G
 error.svm.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
 error.svm.G.base 
 
+x<-model.matrix(~train.purchase.m.svm$risk_factor + train.purchase.m.svm$car_age + train.purchase.m.svm$car_value + train.purchase.m.svm$cost + train.purchase.m.svm$age_oldest + train.purchase.m.svm$age_youngest + 
+    train.purchase.m.svm$day + train.purchase.m.svm$shopping_pt + train.purchase.m.svm$state +
+    train.purchase.m.svm$Quoted_G_minus2 + train.purchase.m.svm$Quoted_G_minus3 + train.purchase.m.svm$Quoted_G_minus4)
 
 
 ##########################################################################
