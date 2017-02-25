@@ -753,9 +753,6 @@ qda.class=predict(qda.fit,data.validation)$class
 table(qda.class ,data.test$response)
 
 
-
-
-
 # ###################
 # # Dec Tree Model
 # ###################
@@ -1119,7 +1116,6 @@ proc.time() - ptm # Stop the clock
 #            probability =TRUE)
 #proc.time() - ptm # Stop the clock
 # summary(svmfit.G)
->>>>>>> b165480ed2b74250733381d79261ed6507d91d73
 
 
 # #use this code to tune SVM using cross validation. 
