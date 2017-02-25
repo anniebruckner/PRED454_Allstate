@@ -1284,3 +1284,27 @@ names(predict_Submit_Final)<- c('customer_ID','plan')
 head(predict_Submit_Final)
 write.csv(predict_Submit_Final, file=file.path(path,"submit_GBM_FG_2.csv"), row.names=FALSE, quote=FALSE)
 
+
+#####################################
+## MODELING TEMPLATE
+#####################################
+
+
+## Random Forest ##
+
+
+
+## Boosted Tree ##
+
+
+
+## SVM ##
+
+
+
+## LDA ##
+
+
+
+## KNN ##
+
