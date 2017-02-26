@@ -110,6 +110,90 @@ train$C_previous_imp[is.na(train$C_previous_imp)] <- 0;table(train$C_previous_im
 train$duration_previous_imp <- train$duration_previous
 train$duration_previous_imp[is.na(train$duration_previous_imp)] <- 0;table(train$duration_previous_imp, exclude=NULL)
 
+###   Test Data ################
+# Check for NAs
+colSums(is.na(test))[colSums(is.na(test)) > 0]
+# <---Ahmar: Start of missing values Impute -------------->
+# Check for NAs %ages
+round(colSums(is.na(test))[colSums(is.na(test)) > 0] * 100/ dim(test)[1],2)
+
+# variables with missing data:
+#location       risk_factor        C_previous duration_previous 
+#678             75487              9769              9769 
+# variable with missing data in %age:
+#location       risk_factor        C_previous duration_previous 
+#0.34             37.96              4.91              4.91 
+
+# Finding association between C-previous & duration_previous
+table(test$C_previous,test$duration_previous, exclude =NULL)
+
+table(test$C_previous, exclude=NULL)
+table(test$risk_factor, exclude=NULL)
+table(test$location, exclude=NULL)
+
+# Finding association between risk_factor and other variables.
+set.seed(1)
+tree.x <- rpart(risk_factor ~ car_value + homeowner+married_couple+car_age+age_oldest + age_youngest + duration_previous+group_size    , data = test, method = "class")
+tree.x # splits on age_oldest
+prp(tree.x)
+fancyRpartPlot(tree.x,main="Risk Factor Association", sub = "   ", tweak=1, palettes=c( "YlOrRd")) # unreadable
+
+# state and location
+st_loc = data.frame(state=test$state, loc=test$location )
+
+#st_loc
+dim(st_loc) #198856      2
+
+colSums(is.na(st_loc))[colSums(is.na(st_loc)) > 0] # 678
+
+# Remove NA locations
+st_loc = st_loc[which(!is.na(st_loc$loc)),]
+
+dim(st_loc) #198178      2
+
+# location frequency by state
+st_loc = ddply(test, .(state,location), summarize, frequency = (length(state)))
+
+st_loc = st_loc[which(!is.na(st_loc$location)),]
+
+# Maximum location frequency by State
+dfsl = setkeyv(setDT(st_loc), c("state","location"))[,list(mxloc=max(frequency)), by=list(state)]
+
+# Location, maximum frequency by location 
+st_loc = merge(st_loc, dfsl, by.x=c("state","frequency"), by.y = c("state", "mxloc"))
+
+# Remove duplicate locations by State based on frequency - taking highest location id
+st_loc = setkeyv(setDT(st_loc), c("state","frequency"))[,list(mxloc=max(location)), by=list(state,frequency)]
+
+# Temp df and merge by state 
+test2 = test #198856 25var
+test2 = merge(test2, st_loc, by.x=c("state"), by.y = c("state"), all.x=TRUE)
+
+colSums(is.na(test))[colSums(is.na(test)) > 0]
+
+
+# Imputing missing values
+# risk_factor
+test$risk_factor_imp = test$risk_factor
+test$risk_factor_imp[is.na(test$risk_factor_imp) & test$age_oldest >=58] <- 1;table(test$risk_factor_imp, exclude=NULL)
+test$risk_factor_imp[is.na(test$risk_factor_imp) & test$age_oldest>=22] <- 4;table(test$risk_factor_imp, exclude=NULL)
+test$risk_factor_imp[is.na(test$risk_factor_imp) & test$age_oldest<22] <- 3;table(test$risk_factor_imp, exclude=NULL)
+
+# C_previous
+test$C_previous_imp <- test$C_previous
+test$C_previous_imp[is.na(test$C_previous_imp)] <- 0;table(test$C_previous_imp, exclude=NULL)
+
+# duration_previous
+test$duration_previous_imp <- test$duration_previous
+test$duration_previous_imp[is.na(test$duration_previous_imp)] <- 0;table(test$duration_previous_imp, exclude=NULL)
+
+
+# Replace missing locations from State Level high frequency locations.
+test$location_imp <- test$location
+test$location_imp[which(is.na(test$location))] <- test2$mxloc[which(is.na(test$location))]
+
+colSums(is.na(test))[colSums(is.na(test)) > 0]
+
 # <----------------- End of Missing Impute ----------------> 
 
 # setting variable types, please feel free to change if you think this is incorrect. #PB
@@ -1109,10 +1193,11 @@ head(test.m)
 #####################################
 ## Impute missing values ##
 #####################################
-#we could use a decision tree to impute missing values. I am using the median to get the models working. Please feel free to change #PB
-test.m$risk_factor[is.na(test.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
-test.m$C_previous[is.na(test.m$C_previous)]<-as.factor((which.max(table(train.purchase.m$C_previous))))
-test.m$duration_previous[is.na(test.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
+#Used decision tree to impute missing values for risk_factor.
+test.m$risk_factor <- test.m$risk_factor_imp
+test.m$C_previous <- test.m$C_previous_imp
+test.m$duration_previous <- test.m$duration_previous_imp
+test.m$location <- test.m$location_imp
 
 
 
