@@ -54,9 +54,9 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 # set to your local directory. We will each have to edit this line of code.
 #path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
-# path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
-# setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
+#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
@@ -88,7 +88,7 @@ table(train$C_previous,train$duration_previous, exclude =NULL)
 table(train$C_previous, exclude=NULL)
 table(train$risk_factor, exclude=NULL)
 
-# FInding association between risk_factor and other variables.
+# Finding association between risk_factor and other variables.
 set.seed(1)
 tree.x <- rpart(risk_factor ~ car_value + homeowner+married_couple+car_age+age_oldest + age_youngest + duration_previous+group_size    , data = train, method = "class")
 tree.x # splits on age_oldest
@@ -111,19 +111,6 @@ train$duration_previous_imp <- train$duration_previous
 train$duration_previous_imp[is.na(train$duration_previous_imp)] <- 0;table(train$duration_previous_imp, exclude=NULL)
 
 # <----------------- End of Missing Impute ----------------> 
-
-# setting variable types, please feel free to change if you think this is incorrect. #PB
-# Shouldn't record_type, state, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
-## state was read as a factor already because it is a string #PB
-## added (record_type,homeowner,married_couple,C_previous) as factors.#PB
-
-## I question whether group_size or risk_factor should be factors. #PB
-## risk_factor should be a Factor, If we want to keep group_size as Factor then we should consider age_oldest and age_youngest as Factors as well.. #AM 
-
-# Why did we make location and car_value factors? # Annie
-## location is a location_ID , I am unsure how to handle this one. Please feel free to edit as neccessary. #PB
-## car_value is a alpha character ("a","b","c",..:), I will keep this as a factor. #PB
-## should we convert car_value, state, into numbers? #SC
 
 # setting variable types, please feel free to change if you think this is incorrect. #PB
 names <- c('day','location','car_value','A','B','C','D','E','F','G','record_type','homeowner','married_couple','C_previous')
@@ -306,13 +293,13 @@ plot(G_Freq,col=c("blue","red","yellow","green"))
 
 
 #can't get the below function to work, trying to plot hist for each variable for each purchase option
-my_hist2<-function(variable)
-{
+#my_hist2<-function(variable)
+#{
   #x <- get(variable)
-  ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~variable)
+#  ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~variable)
   #h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
-}
-apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
+#}
+#apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
 
 #find numeric columns #SC
 nums <- sapply(train.purchase, is.numeric)
@@ -325,16 +312,8 @@ ggplot(train.purchase,aes(x=age_oldest))+geom_bar()+facet_grid(~A)
 ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
 
 forLoopGraph <- function(x) {
-  #print(x)
   for (i in 1:7) {
-    #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
-    #df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
     t = ggplot(train.purchase,aes(x=train.purchase[,paste(x)]))+geom_bar()+facet_grid(paste("~",names(train.purchase)[17+1]))
-    #df$col1 = names(df)[1]
-    #df$col2 = names(df)[3]
-    #names(df)[1] = "cat1"
-    #names(df)[3] = "cat2"
-    #t = rbind(t,df)
   }
   return(t)
 }
@@ -440,22 +419,12 @@ write.csv(cormat_table, "cormat_table.csv")
 # shopping_pt + day + time + state + location + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous + duration_previous + cost
 
 # Create tree model
-tree.x <- rpart(A ~ shopping_pt + day + location + group_size + homeowner + car_value +
-                  risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-                  duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
-tree.x # splits on cost and location
-prp(tree.x)
-fancyRpartPlot(tree.x,sub = "") # unreadable
-
-
-tree.G <- tree(G ~ shopping_pt + day + location + group_size + homeowner + car_value +
-    risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-    duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
-tree.x # splits on cost and location
-prp(tree.x)
-fancyRpartPlot(tree.x,sub = "") # unreadable
-
-
+#tree.x <- rpart(A ~ shopping_pt + day + location + group_size + homeowner + car_value +
+                  #risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+                  #duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
+#tree.x # splits on cost and location
+#prp(tree.x)
+#fancyRpartPlot(tree.x,sub = "") # unreadable
 
 # Create LDA model--
 #model.lda <- lda(A ~ shopping_pt + day + homeowner, data = train)
@@ -475,11 +444,26 @@ fancyRpartPlot(tree.x,sub = "") # unreadable
 #model.lda2 <- lda(A ~ , data = train)
 #plot(model.lda2)
 
+# Copy training data and remove factor variables with > 53 levels
+train.purchase.m.noStates <- train.purchase.m
+train.purchase.m.noStates$state <- NULL
+train.purchase.m.noStates$location <- NULL
+train.purchase.m.noStates$time <- NULL
+
+# Copy training data and remove factor variables with > 53 levels
+train2 <- train
+#train2$state <- NULL
+train2$location <- NULL
+train2$time <- NULL
+
 # Create RF model
-#model.RF <- randomForest(na.omit(A~.), data = train, mtry=5, ntree =25)
+ptm <- proc.time() # Start the clock!
+set.seed(1)
+model.RF.naive <- randomForest(na.omit(G ~ .), data = train2, mtry=5, ntree =25)
+proc.time() - ptm # Stop the clock
 #Error in na.fail.default: missing values in object
-#importance(model.RF)
-#varImpPlot(model.RF, main = "Random Forest Model: \n Variable Importance")
+importance(model.RF.naive)
+#varImpPlot(model.RF.naive, main = "Random Forest Model: \n Variable Importance")
 
 #####################################
 ## Data manipulation for Model Build ## 
