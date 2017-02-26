@@ -611,11 +611,6 @@ set.seed(1)
 ####################
 # K-Nearest Neighbors -- 2/4/17 FP
 ####################
-set.seed(1)
-
-# Error in knn - too many ties in knn
-# Fabian, please insert you KNN Code Here #####
-
 ### Use this code to create a sample of the training data to fit a model   #PB
 n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
 # repeatability of results
@@ -623,15 +618,34 @@ knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
 train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
 dim(train.purchase.m.knn)
 
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+View(train.purchase.m.knn)
 
-attach(train.purchase.m)
-train.X=cbind(train.purchase.m$homeowner[trainSubset],train.purchase.m$married_couple[trainSubset])
-test.X=cbind(train.purchase.m$homeowner[validSubset],train.purchase.m$married_couple[validSubset])
-knn.pred=knn(train.X,test.X,train.purchase.m$A[trainSubset],k=3)
-table(knn.pred,train.purchase.m$A[validSubset])
-mean(knn.pred==train.purchase.m$A[validSubset])
+set.seed(1)
+library(class)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,209 train | 6,043 valid
 
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
+View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", 24]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", 24]
 
+summary(knn.testLabels)
+### Building classifier 
+knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+
+knn_pred
+
+library(gmodels)
+CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
 
 ####################
 # RandomForest G
