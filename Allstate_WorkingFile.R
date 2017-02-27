@@ -462,6 +462,8 @@ set.seed(1)
 model.RF.naive <- randomForest(na.omit(G ~ .), data = train2, mtry=5, ntree =25)
 proc.time() - ptm # Stop the clock
 #Error in na.fail.default: missing values in object
+# Error in na.fail.default(list(G = c(2L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L,  : 
+#missing values in object
 importance(model.RF.naive)
 #varImpPlot(model.RF.naive, main = "Random Forest Model: \n Variable Importance")
 
@@ -849,6 +851,33 @@ error.svm.G.base
 ####################
 set.seed(1)
 
+##Initial Full model
+
+ptm <- proc.time() # Start the clock!
+model.lda0.a <- lda(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                      Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
+                    data = train.purchase.m,
+                    subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#RunTime
+#   user  system elapsed 
+#   2.768   0.422   3.437
+
+#classification accuracy for training data
+post.train.lda0.a <- predict(object=model.lda0.a, newdata = train.purchase.m[trainSubset,])
+plot(model.lda0.a, col = as.integer(train.purchase.m$G[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda0.a$class, train.purchase.m$A[trainSubset]) #confusion matrix
+mean(post.train.lda0.a$class==train.purchase.m$A[trainSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$A[trainSubset], post.train.lda0.a$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
+
+#classification accuracy for validation data
+post.valid.lda0.a <- predict(object=model.lda0.a, newdata = train.purchase.m[validSubset,])
+plot(model.lda0.a, col = as.integer(train.purchase.m$A[validSubset]), dimen = 2) #scatterplot with colors
+table(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #confusion matrix
+mean(post.valid.lda0.a$class==train.purchase.m$A[validSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
+
+
 ####################
 # K-Nearest Neighbors *A*
 ####################
@@ -858,11 +887,118 @@ set.seed(1)
 # RandomForest *A*
 ####################
 set.seed(1)
+ptm <- proc.time() # Start the clock!
+model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 ,
+                           data=train.purchase.m,subset = trainSubset,ntrees=500) 
+
+proc.time() - ptm # Stop the clock
+#   user  system elapsed 
+#492.976  14.823 560.965
+
+#model summary,Var importance stats and plot
+model.rf.A
+randomForest::importance(model.rf.A)
+randomForest::varImpPlot(model.rf.A)
+
+# Predict random forest on validation set
+post.valid.rf.A <- predict(model.rf.A, train.purchase.m[validSubset,]) 
+length(post.valid.rf.A)
+
+#Create a simple confusion matrix
+table(post.valid.rf.A,train.purchase.m$A[validSubset])
+#post.valid.rf.A     0     1     2
+#0  4970   241    78
+#1   278 14358   726
+#2    95   292  3214
+
+#Check the misclassification rate
+error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[validSubset]),4)
+error.rf.A #0.0705
+
+#Compare against the misclassification rate for the base model 
+error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+error.rf.A.base #0.0729
+
+# Fit Metrics
+confusionMatrix(post.valid.rf.A,train.purchase.m$A[validSubset],)
+#Confusion Matrix and Statistics
+#Reference
+#Prediction     0     1     2
+#0  4970   241    78
+#1   278 14358   726
+#2    95   292  3214
+
+#Overall Statistics
+
+#Accuracy : 0.9295          
+#95% CI : (0.9262, 0.9327)
+#No Information Rate : 0.614           
+#P-Value [Acc > NIR] : < 2.2e-16       
+
+#Kappa : 0.869           
+#Mcnemar's Test P-Value : < 2.2e-16       
+
+#Statistics by Class:
+
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9302   0.9642   0.7999
+#Specificity            0.9831   0.8927   0.9809
+#Pos Pred Value         0.9397   0.9346   0.8925
+#Neg Pred Value         0.9803   0.9400   0.9611
+#Prevalence             0.2203   0.6140   0.1657
+#Detection Rate         0.2049   0.5920   0.1325
+#Detection Prevalence   0.2181   0.6334   0.1485
+#Balanced Accuracy      0.9567   0.9285   0.8904
+
 
 ####################
 # Boosting Model *A*
 ####################
+
+ptm <- proc.time() # Start the clock!
 set.seed(1)
+model.boost.A=gbm(A ~ (lastQuoted_A)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                    Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4  ,
+                  data=train.purchase.m[trainSubset,],
+                  distribution="multinomial",
+                  n.trees=1000,
+                  interaction.depth=4,
+                  shrinkage = .01)
+
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#246.524   6.016 345.409
+
+#relative influence statistics & plot.
+summary(model.boost.A)
+summaryBoostA<-summary(model.boost.A)
+
+# Predict GBM on validation set
+post.valid.boost.prob.A <- predict(model.boost.A, train.purchase.m[validSubset,],type='response',n.trees=1000) 
+post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)
+length(post.valid.boost.A)
+head(post.valid.boost.A)
+
+#Create a simple confusion matrix
+table(post.valid.boost.A,train.purchase.m$A[validSubset])
+
+#Check the misclassification rate
+error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[validSubset]),4)
+error.boost.A 
+
+#Compare against the misclassification rate for the base model 
+error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+error.boost.A.base 
+
+# Fit Metrics
+confusionMatrix(post.valid.boost.A,train.purchase.m$A[validSubset],)
+
+#plot relative influence of variables
+summaryBoostA<-summaryBoostA[order(summaryBoostA$rel.inf,decreasing=FALSE),]
+par(mar=c(3,10,3,3))
+barplot(t(summaryBoostA$rel.inf),names.arg = summaryBoostA$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
+
 
 ###################
 # SVM *A*
