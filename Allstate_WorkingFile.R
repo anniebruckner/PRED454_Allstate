@@ -54,9 +54,9 @@ lapply(list.of.packages, require, character.only = TRUE)
 
 # set to your local directory. We will each have to edit this line of code.
 #path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
-path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
-# path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
-# setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
+#path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
+path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
+setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
 
 #load the train and the test data
 train <- read.csv(file.path(path,"train.csv"), stringsAsFactors=TRUE)
@@ -88,7 +88,7 @@ table(train$C_previous,train$duration_previous, exclude =NULL)
 table(train$C_previous, exclude=NULL)
 table(train$risk_factor, exclude=NULL)
 
-# FInding association between risk_factor and other variables.
+# Finding association between risk_factor and other variables.
 set.seed(1)
 tree.x <- rpart(risk_factor ~ car_value + homeowner+married_couple+car_age+age_oldest + age_youngest + duration_previous+group_size    , data = train, method = "class")
 tree.x # splits on age_oldest
@@ -195,19 +195,6 @@ test$location_imp[which(is.na(test$location))] <- test2$mxloc[which(is.na(test$l
 colSums(is.na(test))[colSums(is.na(test)) > 0]
 
 # <----------------- End of Missing Impute ----------------> 
-
-# setting variable types, please feel free to change if you think this is incorrect. #PB
-# Shouldn't record_type, state, group_size, homeowner, risk_factor, married_couple, C_previous be factors too? #Annie
-## state was read as a factor already because it is a string #PB
-## added (record_type,homeowner,married_couple,C_previous) as factors.#PB
-
-## I question whether group_size or risk_factor should be factors. #PB
-## risk_factor should be a Factor, If we want to keep group_size as Factor then we should consider age_oldest and age_youngest as Factors as well.. #AM 
-
-# Why did we make location and car_value factors? # Annie
-## location is a location_ID , I am unsure how to handle this one. Please feel free to edit as neccessary. #PB
-## car_value is a alpha character ("a","b","c",..:), I will keep this as a factor. #PB
-## should we convert car_value, state, into numbers? #SC
 
 # setting variable types, please feel free to change if you think this is incorrect. #PB
 names <- c('day','location','car_value','A','B','C','D','E','F','G','record_type','homeowner','married_couple','C_previous')
@@ -390,13 +377,13 @@ plot(G_Freq,col=c("blue","red","yellow","green"))
 
 
 #can't get the below function to work, trying to plot hist for each variable for each purchase option
-my_hist2<-function(variable)
-{
+#my_hist2<-function(variable)
+#{
   #x <- get(variable)
-  ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~variable)
+#  ggplot(train.purchase,aes(x=day))+geom_bar()+facet_grid(~variable)
   #h<-hist(x,breaks=seq(from=-.5,to=4.5,by=1),col="red",main=variable)
-}
-apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
+#}
+#apply(X = array(names(train.purchase)[18:24]),MARGIN =1,FUN = my_hist2)
 
 #find numeric columns #SC
 nums <- sapply(train.purchase, is.numeric)
@@ -409,16 +396,8 @@ ggplot(train.purchase,aes(x=age_oldest))+geom_bar()+facet_grid(~A)
 ggplot(train.purchase,aes(x=train.purchase[,paste("day")]))+geom_bar()+facet_grid(paste("~","A"))
 
 forLoopGraph <- function(x) {
-  #print(x)
   for (i in 1:7) {
-    #print(myFunction2(train.purchase, names(train.purchase)[17+i], x))
-    #df = melt(cast(train.purchase, paste(names(train.purchase)[17+i],x, sep = "~"), pctTot))
     t = ggplot(train.purchase,aes(x=train.purchase[,paste(x)]))+geom_bar()+facet_grid(paste("~",names(train.purchase)[17+1]))
-    #df$col1 = names(df)[1]
-    #df$col2 = names(df)[3]
-    #names(df)[1] = "cat1"
-    #names(df)[3] = "cat2"
-    #t = rbind(t,df)
   }
   return(t)
 }
@@ -524,22 +503,12 @@ write.csv(cormat_table, "cormat_table.csv")
 # shopping_pt + day + time + state + location + group_size + homeowner + car_age + car_value + risk_factor + age_oldest + age_youngest + married_couple + C_previous + duration_previous + cost
 
 # Create tree model
-tree.x <- rpart(A ~ shopping_pt + day + location + group_size + homeowner + car_value +
-                  risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-                  duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
-tree.x # splits on cost and location
-prp(tree.x)
-fancyRpartPlot(tree.x,sub = "") # unreadable
-
-
-tree.G <- tree(G ~ shopping_pt + day + location + group_size + homeowner + car_value +
-    risk_factor + age_oldest + age_youngest + married_couple + C_previous +
-    duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
-tree.x # splits on cost and location
-prp(tree.x)
-fancyRpartPlot(tree.x,sub = "") # unreadable
-
-
+#tree.x <- rpart(A ~ shopping_pt + day + location + group_size + homeowner + car_value +
+                  #risk_factor + age_oldest + age_youngest + married_couple + C_previous +
+                  #duration_previous + cost, data = train, method = "anova", control= rpart.control(maxdepth= 3))
+#tree.x # splits on cost and location
+#prp(tree.x)
+#fancyRpartPlot(tree.x,sub = "") # unreadable
 
 # Create LDA model--
 #model.lda <- lda(A ~ shopping_pt + day + homeowner, data = train)
@@ -559,11 +528,28 @@ fancyRpartPlot(tree.x,sub = "") # unreadable
 #model.lda2 <- lda(A ~ , data = train)
 #plot(model.lda2)
 
+# Copy training data and remove factor variables with > 53 levels
+train.purchase.m.noStates <- train.purchase.m
+train.purchase.m.noStates$state <- NULL
+train.purchase.m.noStates$location <- NULL
+train.purchase.m.noStates$time <- NULL
+
+# Copy training data and remove factor variables with > 53 levels
+train2 <- train
+#train2$state <- NULL
+train2$location <- NULL
+train2$time <- NULL
+
 # Create RF model
-#model.RF <- randomForest(na.omit(A~.), data = train, mtry=5, ntree =25)
+ptm <- proc.time() # Start the clock!
+set.seed(1)
+model.RF.naive <- randomForest(na.omit(G ~ .), data = train2, mtry=5, ntree =25)
+proc.time() - ptm # Stop the clock
 #Error in na.fail.default: missing values in object
-#importance(model.RF)
-#varImpPlot(model.RF, main = "Random Forest Model: \n Variable Importance")
+# Error in na.fail.default(list(G = c(2L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L,  : 
+#missing values in object
+importance(model.RF.naive)
+#varImpPlot(model.RF.naive, main = "Random Forest Model: \n Variable Importance")
 
 #####################################
 ## Data manipulation for Model Build ## 
@@ -949,6 +935,33 @@ error.svm.G.base
 ####################
 set.seed(1)
 
+##Initial Full model
+
+ptm <- proc.time() # Start the clock!
+model.lda0.a <- lda(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                      Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
+                    data = train.purchase.m,
+                    subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#RunTime
+#   user  system elapsed 
+#   2.768   0.422   3.437
+
+#classification accuracy for training data
+post.train.lda0.a <- predict(object=model.lda0.a, newdata = train.purchase.m[trainSubset,])
+plot(model.lda0.a, col = as.integer(train.purchase.m$G[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda0.a$class, train.purchase.m$A[trainSubset]) #confusion matrix
+mean(post.train.lda0.a$class==train.purchase.m$A[trainSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$A[trainSubset], post.train.lda0.a$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
+
+#classification accuracy for validation data
+post.valid.lda0.a <- predict(object=model.lda0.a, newdata = train.purchase.m[validSubset,])
+plot(model.lda0.a, col = as.integer(train.purchase.m$A[validSubset]), dimen = 2) #scatterplot with colors
+table(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #confusion matrix
+mean(post.valid.lda0.a$class==train.purchase.m$A[validSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
+
+
 ####################
 # K-Nearest Neighbors *A*
 ####################
@@ -958,11 +971,118 @@ set.seed(1)
 # RandomForest *A*
 ####################
 set.seed(1)
+ptm <- proc.time() # Start the clock!
+model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 ,
+                           data=train.purchase.m,subset = trainSubset,ntrees=500) 
+
+proc.time() - ptm # Stop the clock
+#   user  system elapsed 
+#492.976  14.823 560.965
+
+#model summary,Var importance stats and plot
+model.rf.A
+randomForest::importance(model.rf.A)
+randomForest::varImpPlot(model.rf.A)
+
+# Predict random forest on validation set
+post.valid.rf.A <- predict(model.rf.A, train.purchase.m[validSubset,]) 
+length(post.valid.rf.A)
+
+#Create a simple confusion matrix
+table(post.valid.rf.A,train.purchase.m$A[validSubset])
+#post.valid.rf.A     0     1     2
+#0  4970   241    78
+#1   278 14358   726
+#2    95   292  3214
+
+#Check the misclassification rate
+error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[validSubset]),4)
+error.rf.A #0.0705
+
+#Compare against the misclassification rate for the base model 
+error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+error.rf.A.base #0.0729
+
+# Fit Metrics
+confusionMatrix(post.valid.rf.A,train.purchase.m$A[validSubset],)
+#Confusion Matrix and Statistics
+#Reference
+#Prediction     0     1     2
+#0  4970   241    78
+#1   278 14358   726
+#2    95   292  3214
+
+#Overall Statistics
+
+#Accuracy : 0.9295          
+#95% CI : (0.9262, 0.9327)
+#No Information Rate : 0.614           
+#P-Value [Acc > NIR] : < 2.2e-16       
+
+#Kappa : 0.869           
+#Mcnemar's Test P-Value : < 2.2e-16       
+
+#Statistics by Class:
+
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9302   0.9642   0.7999
+#Specificity            0.9831   0.8927   0.9809
+#Pos Pred Value         0.9397   0.9346   0.8925
+#Neg Pred Value         0.9803   0.9400   0.9611
+#Prevalence             0.2203   0.6140   0.1657
+#Detection Rate         0.2049   0.5920   0.1325
+#Detection Prevalence   0.2181   0.6334   0.1485
+#Balanced Accuracy      0.9567   0.9285   0.8904
+
 
 ####################
 # Boosting Model *A*
 ####################
+
+ptm <- proc.time() # Start the clock!
 set.seed(1)
+model.boost.A=gbm(A ~ (lastQuoted_A)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                    Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4  ,
+                  data=train.purchase.m[trainSubset,],
+                  distribution="multinomial",
+                  n.trees=1000,
+                  interaction.depth=4,
+                  shrinkage = .01)
+
+proc.time() - ptm # Stop the clock
+#user  system elapsed 
+#246.524   6.016 345.409
+
+#relative influence statistics & plot.
+summary(model.boost.A)
+summaryBoostA<-summary(model.boost.A)
+
+# Predict GBM on validation set
+post.valid.boost.prob.A <- predict(model.boost.A, train.purchase.m[validSubset,],type='response',n.trees=1000) 
+post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)
+length(post.valid.boost.A)
+head(post.valid.boost.A)
+
+#Create a simple confusion matrix
+table(post.valid.boost.A,train.purchase.m$A[validSubset])
+
+#Check the misclassification rate
+error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[validSubset]),4)
+error.boost.A 
+
+#Compare against the misclassification rate for the base model 
+error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+error.boost.A.base 
+
+# Fit Metrics
+confusionMatrix(post.valid.boost.A,train.purchase.m$A[validSubset],)
+
+#plot relative influence of variables
+summaryBoostA<-summaryBoostA[order(summaryBoostA$rel.inf,decreasing=FALSE),]
+par(mar=c(3,10,3,3))
+barplot(t(summaryBoostA$rel.inf),names.arg = summaryBoostA$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
+
 
 ###################
 # SVM *A*
