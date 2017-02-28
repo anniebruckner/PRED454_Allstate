@@ -53,7 +53,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -509,6 +509,8 @@ write.csv(cormat_table, "cormat_table.csv")
 #tree.x # splits on cost and location
 #prp(tree.x)
 #fancyRpartPlot(tree.x,sub = "") # unreadable
+
+########## END EDA ###########
 
 # Create LDA model--
 #model.lda <- lda(A ~ shopping_pt + day + homeowner, data = train)
