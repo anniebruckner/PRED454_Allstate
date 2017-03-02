@@ -556,6 +556,21 @@ colSums(quoteChange_df,2)
 # study the changes G records
 changeG<-(subset(train.purchase.m,train.purchase.m$lastQuoted_G!=train.purchase.m$G))
 
+
+
+quoteChange_df<-data.frame(matrix(0,nrow=dim(train.purchase.m[validSubset,])[1],ncol=1))
+planOptions<-c("A","B","C","D","E","F","G")
+for (ii in 1:7)  {
+  quoteChange_df[paste(planOptions[ii],"_change",sep="")] <- as.numeric((get(paste("lastQuoted_",planOptions[ii],sep=""),train.purchase.m[validSubset,]))!=(get(planOptions[ii],train.purchase.m[validSubset,])))
+}
+quoteChange_df[1]<-NULL
+colSums(quoteChange_df,2)
+colSums(quoteChange_df,2)/dim(train.purchase.m[validSubset,])[1]
+
+1-mean(train.purchase.m$lastQuoted_G[validSubset]==train.purchase.m$G[validSubset])
+
+
+
 #####################################
 ## Impute missing values ##
 #####################################
