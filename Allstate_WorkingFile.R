@@ -1250,7 +1250,7 @@ summaryBoost<-summary(model.boost.B)
 
 # Predict GBM on validation set
 post.valid.boost.prob.B <- predict(model.boost.B, train.purchase.m[validSubset,],type='response',n.trees=1000) 
-post.valid.boost.B<-apply(post.valid.boost.prob.B, 1, which.max)
+post.valid.boost.B<-apply(post.valid.boost.prob.B, 1, which.max) - 1
 length(post.valid.boost.B)
 head(post.valid.boost.B)
 
