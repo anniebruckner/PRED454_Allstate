@@ -1229,11 +1229,112 @@ confusionMatrix(post.valid.rf.B,train.purchase.m$B[validSubset],)
 ####################
 set.seed(1)
 
+ptm <- proc.time() # Start the clock!
+
+model.boost.B=gbm(B ~ (lastQuoted_B)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                    Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4  ,
+                  data=train.purchase.m[trainSubset,],
+                  distribution="multinomial",
+                  n.trees=1000,
+                  interaction.depth=2,
+                  shrinkage = .01)
+
+proc.time() - ptm # Stop the clock
+#RunTime
+#user  system elapsed 
+#151.54    0.47  153.98
+
+#relative influence statistics & plot.
+summary(model.boost.B)
+summaryBoost<-summary(model.boost.B)
+
+# Predict GBM on validation set
+post.valid.boost.prob.B <- predict(model.boost.B, train.purchase.m[validSubset,],type='response',n.trees=1000) 
+post.valid.boost.B<-apply(post.valid.boost.prob.B, 1, which.max)
+length(post.valid.boost.B)
+head(post.valid.boost.B)
+
+#Create a simple confusion matrix
+table(post.valid.boost.B,train.purchase.m$B[validSubset])
+
+#Check the misclassification rate
+error.boost.B <- round(mean(post.valid.boost.B!=train.purchase.m$B[validSubset]),4)
+error.boost.B 
+
+#Compare against the misclassification rate for the base model 
+error.boost.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+error.boost.B.base 
+
+# Fit Metrics
+confusionMatrix(post.valid.boost.B,train.purchase.m$B[validSubset])
+
+#plot relative influence of variables
+summaryBoost<-summaryBoost[order(summaryBoost$rel.inf,decreasing=FALSE),]
+par(mar=c(3,10,3,3))
+barplot(t(summaryBoost$rel.inf),names.arg = summaryBoost$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
+
+
 ###################
 # SVM *B*
 ###################
 set.seed(1)
 
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+svm.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.svm<-train.purchase.m[train.purchase.m$part=="train",][svm.sample,] 
+dim(train.purchase.m.svm)
+
+# # We can perform cross-validation using tune() to select the best choice of
+# # gamma and cost for an SVM with a radial kernel:
+# set.seed(1)
+# control <- tune.control(nrepeat = 5,cross = 5)
+# tune.out = tune(
+#   svm,G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#     Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+#   data = train.purchase.m.svm,
+#   kernel = "linear",
+#   ranges = list(cost = c(.01,.1,.5,1),
+#     gamma = c(1)),
+#   tunecontrol = control
+# )
+# summary(tune.out)
+
+
+#Fit a linear SVM Model
+ptm <- proc.time() # Start the clock!
+svmfit.B=svm(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+               Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4  ,
+             data=train.purchase.m.svm,
+             kernel="linear",  
+             gamma=.01, 
+             cost=1,
+             probability =TRUE)
+proc.time() - ptm # Stop the clock
+
+#Summary statitics
+summary(svmfit.B)
+
+#RunTime
+# user  system elapsed 
+# 156.099   1.407 158.419 
+
+# Predict SVM on validation set
+post.valid.svm.B<-predict(svmfit.B,train.purchase.m[validSubset,])
+length(post.valid.svm.B)
+
+#Create a simple confusion matrix
+table(post.valid.svm.B,train.purchase.m$B[validSubset])
+
+#Check the misclassification rate
+error.svm.B <- round(mean(post.valid.svm.B!=train.purchase.m$B[validSubset]),4)
+error.svm.B 
+# [1] 0.1363
+
+#Compare against the misclassification rate for the base model 
+error.svm.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+error.svm.B.base 
 
 
 ##########################################################################
@@ -1297,7 +1398,6 @@ set.seed(1)
 # SVM *D*
 ###################
 set.seed(1)
-
 
 
 ##########################################################################
