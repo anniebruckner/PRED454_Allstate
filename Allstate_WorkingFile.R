@@ -1187,41 +1187,41 @@ CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
 ####################
 set.seed(1)
 
-
 ptm <- proc.time() # Start the clock!
 
-model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                             Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4 ,
+model.rf.B <- randomForest(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4 ,
                            data=train.purchase.m,subset = trainSubset,ntrees=500) 
 
 proc.time() - ptm # Stop the clock
 
 #RunTime
 #user  system elapsed 
-#730.899   6.797 742.187 
+#114.52    0.93  116.36 
 
 #model summary,Var importance stats and plot
-model.rf.G
-randomForest::importance(model.rf.G)
-randomForest::varImpPlot(model.rf.G)
+model.rf.B
+randomForest::importance(model.rf.B)
+randomForest::varImpPlot(model.rf.B)
 
 # Predict random forest on validation set
-post.valid.rf.G <- predict(model.rf.G, train.purchase.m[validSubset,]) 
-length(post.valid.rf.G)
-
+post.valid.rf.B <- predict(model.rf.B, train.purchase.m[validSubset,]) 
+length(post.valid.rf.B)
+#str(post.valid.rf.B)
+#str(train.purchase.m$B[validSubset])
 #Create a simple confusion matrix
-table(post.valid.rf.G,train.purchase.m$G[validSubset])
+table(post.valid.rf.B,train.purchase.m$B[validSubset])
 
 #Check the misclassification rate
-error.rf.G <- round(mean(post.valid.rf.G!=train.purchase.m$G[validSubset]),4)
-error.rf.G
+error.rf.B <- round(mean(post.valid.rf.B!=train.purchase.m$B[validSubset]),4)
+error.rf.B
 
 #Compare against the misclassification rate for the base model 
-error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
-error.rf.G.base 
+error.rf.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+error.rf.B.base 
 
 # Fit Metrics
-confusionMatrix(post.valid.rf.G,train.purchase.m$G[validSubset],)
+confusionMatrix(post.valid.rf.B,train.purchase.m$B[validSubset],)
 
 
 ####################
