@@ -37,7 +37,8 @@ list.of.packages <- c("doBy"
                       ,"reshape2"
                       ,"nnet"
                       ,"mlogit"
-                      ,"e1071")
+                      ,"e1071"
+                      ,"gmodels")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -1116,16 +1117,112 @@ set.seed(1)
 #LDA *B* 
 ####################
 set.seed(1)
+##Initial Full model
+
+ptm <- proc.time() # Start the clock!
+model.lda0.b <- lda(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                      Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4,
+                    data = train.purchase.m,
+                    subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#RunTime
+#user  system elapsed 
+#2.36    0.31    3.27 
+
+#classification accuracy for training data
+post.train.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[trainSubset,])
+plot(model.lda0.b, col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda0.b$class, train.purchase.m$B[trainSubset]) #confusion matrix
+mean(post.train.lda0.b$class==train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$B[trainSubset], post.train.lda0.b$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
+
+#classification accuracy for validation data
+post.valid.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[validSubset,])
+plot(model.lda0.b, col = as.integer(train.purchase.m$B[validSubset]), dimen = 2) #scatterplot with colors
+table(post.valid.lda0.b$class, train.purchase.m$B[validSubset]) #confusion matrix
+mean(post.valid.lda0.b$class==train.purchase.m$B[validSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$B[validSubset], post.valid.lda0.b$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
 
 ####################
 # K-Nearest Neighbors *B*
 ####################
 set.seed(1)
 
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+dim(train.purchase.m.knn)
+
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+View(train.purchase.m.knn)
+
+set.seed(1)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,209 train | 6,043 valid
+
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
+View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c("B")]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c("B")]
+
+summary(knn.testLabels)
+### Building classifier 
+knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+
+#knn_pred
+
+CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+
 ####################
 # RandomForest *B*
 ####################
 set.seed(1)
+
+
+ptm <- proc.time() # Start the clock!
+
+model.rf.G <- randomForest(G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4 ,
+                           data=train.purchase.m,subset = trainSubset,ntrees=500) 
+
+proc.time() - ptm # Stop the clock
+
+#RunTime
+#user  system elapsed 
+#730.899   6.797 742.187 
+
+#model summary,Var importance stats and plot
+model.rf.G
+randomForest::importance(model.rf.G)
+randomForest::varImpPlot(model.rf.G)
+
+# Predict random forest on validation set
+post.valid.rf.G <- predict(model.rf.G, train.purchase.m[validSubset,]) 
+length(post.valid.rf.G)
+
+#Create a simple confusion matrix
+table(post.valid.rf.G,train.purchase.m$G[validSubset])
+
+#Check the misclassification rate
+error.rf.G <- round(mean(post.valid.rf.G!=train.purchase.m$G[validSubset]),4)
+error.rf.G
+
+#Compare against the misclassification rate for the base model 
+error.rf.G.base <- round(mean(train.purchase.m$lastQuoted_G[validSubset]!=train.purchase.m$G[validSubset]),4)
+error.rf.G.base 
+
+# Fit Metrics
+confusionMatrix(post.valid.rf.G,train.purchase.m$G[validSubset],)
+
 
 ####################
 # Boosting Model *B*
