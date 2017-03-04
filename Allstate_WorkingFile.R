@@ -972,7 +972,21 @@ proc.time() - ptm # Stop the clock
 
 #relative influence statistics & plot.
 summary(model.boost.A)
-summaryBoostA<-summary(model.boost.A)
+#var      rel.inf
+#lastQuoted_A       lastQuoted_A 92.309355883
+#Quoted_A_minus2 Quoted_A_minus2  3.012882415
+#car_age                 car_age  1.430935011
+#cost                       cost  1.127831898
+#Quoted_A_minus3 Quoted_A_minus3  0.821731349
+#state                     state  0.634104774
+#Quoted_A_minus4 Quoted_A_minus4  0.380162274
+#age_youngest       age_youngest  0.127491039
+#risk_factor         risk_factor  0.090959460
+#age_oldest           age_oldest  0.049988503
+#car_value             car_value  0.006905027
+#shopping_pt         shopping_pt  0.005045233
+#day                         day  0.002607133
+#summaryBoostA<-summary(model.boost.A)
 
 # Predict GBM on validation set
 post.valid.boost.prob.A <- predict(model.boost.A, train.purchase.m[validSubset,],type='response',n.trees=1000) 
@@ -982,17 +996,25 @@ head(post.valid.boost.A)
 
 #Create a simple confusion matrix
 table(post.valid.boost.A,train.purchase.m$A[validSubset])
+#post.valid.boost.A     0     1     2
+#1  5000   233    78
+#2   262 14369   727
+#3    81   289  3213
 
 #Check the misclassification rate
 error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[validSubset]),4)
 error.boost.A 
+#0.9604
 
 #Compare against the misclassification rate for the base model 
 error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
-error.boost.A.base 
+error.boost.A.base
+#0.0729
 
 # Fit Metrics
 confusionMatrix(post.valid.boost.A,train.purchase.m$A[validSubset],)
+#Error in confusionMatrix.default(post.valid.boost.A, train.purchase.m$A[validSubset],  : 
+#The data contain levels not found in the data.
 
 #plot relative influence of variables
 summaryBoostA<-summaryBoostA[order(summaryBoostA$rel.inf,decreasing=FALSE),]
