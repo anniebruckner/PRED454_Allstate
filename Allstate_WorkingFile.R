@@ -532,10 +532,10 @@ write.csv(cormat_table, "cormat_table.csv")
 #plot(model.lda2)
 
 # Copy training data and remove factor variables with > 53 levels
-train.purchase.m.noStates <- train.purchase.m
-train.purchase.m.noStates$state <- NULL
-train.purchase.m.noStates$location <- NULL
-train.purchase.m.noStates$time <- NULL
+train.purchase.m.A <- train.purchase.m
+train.purchase.m.A$state <- NULL
+train.purchase.m.A$location <- NULL
+train.purchase.m.A$time <- NULL
 
 # Copy training data and remove factor variables with > 53 levels
 train2 <- train
@@ -546,12 +546,12 @@ train2$time <- NULL
 # Create RF model
 ptm <- proc.time() # Start the clock!
 set.seed(1)
-model.RF.naive <- randomForest(na.omit(G ~ .), data = train2, mtry=5, ntree =25)
+model.RF.naive.A <- randomForest(na.omit(A ~ .), data = train.purchase.m.A, ntree =500)
 proc.time() - ptm # Stop the clock
 #Error in na.fail.default: missing values in object
 # Error in na.fail.default(list(G = c(2L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L,  : 
 #missing values in object
-importance(model.RF.naive)
+importance(model.RF.naive.A)
 #varImpPlot(model.RF.naive, main = "Random Forest Model: \n Variable Importance")
 
 #####################################
@@ -948,6 +948,12 @@ error.svm.G.base
 ## Option *A* Models ##
 ##########################################################################
 
+set.seed(1)
+ptm <- proc.time() # Start the clock!
+model.rf.A.var <- randomForest(A ~ ., data=train.purchase.m ,subset = trainSubset, ntrees=500) 
+proc.time() - ptm # Stop the clock
+
+
 ####################
 #LDA *A* 
 ####################
@@ -984,6 +990,41 @@ plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red
 # K-Nearest Neighbors *A*
 ####################
 set.seed(1)
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+dim(train.purchase.m.knn)
+
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+View(train.purchase.m.knn)
+
+set.seed(1)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,209 train | 6,043 valid
+## 18221  6031 AB
+
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
+View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c("A")]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c("A")]
+
+summary(knn.testLabels)
+### Building classifier 
+knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+
+#knn_pred
+
+CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+
 
 ####################
 # RandomForest *A*
@@ -1128,6 +1169,79 @@ barplot(t(summaryBoostA$rel.inf),names.arg = summaryBoostA$var ,las=2,col="darkb
 # SVM *A*
 ###################
 set.seed(1)
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+svm.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.svm<-train.purchase.m[train.purchase.m$part=="train",][svm.sample,] 
+dim(train.purchase.m.svm)
+#18189    62
+
+
+# # We can perform cross-validation using tune() to select the best choice of
+# # gamma and cost for an SVM with a radial kernel:
+# set.seed(1)
+# control <- tune.control(nrepeat = 5,cross = 5)
+# tune.out = tune(
+#   svm,A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#     Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4  ,
+#   data = train.purchase.m.svm,
+#   kernel = "linear",
+#   ranges = list(cost = c(.01,.1,.5,1),
+#     gamma = c(1)),
+#   tunecontrol = control
+# )
+# summary(tune.out)
+
+
+#Fit a linear SVM Model
+ptm <- proc.time() # Start the clock!
+svmfit.A=svm(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+               Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4  ,
+             data=train.purchase.m.svm,
+             kernel="linear",  
+             gamma=.01, 
+             cost=1,
+             probability =TRUE)
+proc.time() - ptm # Stop the clock
+
+#Summary statitics
+#summary(svmfit.A)
+#Parameters:
+#  SVM-Type:  C-classification 
+#SVM-Kernel:  linear 
+#cost:  1 
+#gamma:  0.01 
+
+#Number of Support Vectors:  3430
+#( 1722 989 719 )
+#Number of Classes:  3 
+#Levels: 
+#  0 1 2
+
+#RunTime
+# user  system elapsed 
+# 49.066   0.533  52.545 
+
+# Predict SVM on validation set
+post.valid.svm.A<-predict(svmfit.A,train.purchase.m[validSubset,])
+length(post.valid.svm.A) #24252
+
+#Create a simple confusion matrix
+table(post.valid.svm.A,train.purchase.m$A[validSubset])
+#post.valid.svm.A     0     1     2
+#0  4909   228    78
+#1   361 14380   740
+#2    73   283  3200
+
+#Check the misclassification rate
+error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[validSubset]),4)
+error.svm.A 
+# [1] 0.0727
+
+#Compare against the misclassification rate for the base model 
+error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+error.svm.A.base #0.0729
 
 
 
