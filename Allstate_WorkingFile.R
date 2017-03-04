@@ -37,7 +37,8 @@ list.of.packages <- c("doBy"
                       ,"reshape2"
                       ,"nnet"
                       ,"mlogit"
-                      ,"e1071")
+                      ,"e1071"
+                      ,"gmodels")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -53,7 +54,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -109,6 +110,90 @@ train$C_previous_imp[is.na(train$C_previous_imp)] <- 0;table(train$C_previous_im
 # duration_previous
 train$duration_previous_imp <- train$duration_previous
 train$duration_previous_imp[is.na(train$duration_previous_imp)] <- 0;table(train$duration_previous_imp, exclude=NULL)
+
+###   Test Data ################
+# Check for NAs
+colSums(is.na(test))[colSums(is.na(test)) > 0]
+# <---Ahmar: Start of missing values Impute -------------->
+# Check for NAs %ages
+round(colSums(is.na(test))[colSums(is.na(test)) > 0] * 100/ dim(test)[1],2)
+
+# variables with missing data:
+#location       risk_factor        C_previous duration_previous 
+#678             75487              9769              9769 
+# variable with missing data in %age:
+#location       risk_factor        C_previous duration_previous 
+#0.34             37.96              4.91              4.91 
+
+# Finding association between C-previous & duration_previous
+table(test$C_previous,test$duration_previous, exclude =NULL)
+
+table(test$C_previous, exclude=NULL)
+table(test$risk_factor, exclude=NULL)
+table(test$location, exclude=NULL)
+
+# Finding association between risk_factor and other variables.
+set.seed(1)
+tree.x <- rpart(risk_factor ~ car_value + homeowner+married_couple+car_age+age_oldest + age_youngest + duration_previous+group_size    , data = test, method = "class")
+tree.x # splits on age_oldest
+prp(tree.x)
+fancyRpartPlot(tree.x,main="Risk Factor Association", sub = "   ", tweak=1, palettes=c( "YlOrRd")) # unreadable
+
+# state and location
+st_loc = data.frame(state=test$state, loc=test$location )
+
+#st_loc
+dim(st_loc) #198856      2
+
+colSums(is.na(st_loc))[colSums(is.na(st_loc)) > 0] # 678
+
+# Remove NA locations
+st_loc = st_loc[which(!is.na(st_loc$loc)),]
+
+dim(st_loc) #198178      2
+
+# location frequency by state
+st_loc = ddply(test, .(state,location), summarize, frequency = (length(state)))
+
+st_loc = st_loc[which(!is.na(st_loc$location)),]
+
+# Maximum location frequency by State
+dfsl = setkeyv(setDT(st_loc), c("state","location"))[,list(mxloc=max(frequency)), by=list(state)]
+
+# Location, maximum frequency by location 
+st_loc = merge(st_loc, dfsl, by.x=c("state","frequency"), by.y = c("state", "mxloc"))
+
+# Remove duplicate locations by State based on frequency - taking highest location id
+st_loc = setkeyv(setDT(st_loc), c("state","frequency"))[,list(mxloc=max(location)), by=list(state,frequency)]
+
+# Temp df and merge by state 
+test2 = test #198856 25var
+test2 = merge(test2, st_loc, by.x=c("state"), by.y = c("state"), all.x=TRUE)
+
+colSums(is.na(test))[colSums(is.na(test)) > 0]
+
+
+# Imputing missing values
+# risk_factor
+test$risk_factor_imp = test$risk_factor
+test$risk_factor_imp[is.na(test$risk_factor_imp) & test$age_oldest >=58] <- 1;table(test$risk_factor_imp, exclude=NULL)
+test$risk_factor_imp[is.na(test$risk_factor_imp) & test$age_oldest>=22] <- 4;table(test$risk_factor_imp, exclude=NULL)
+test$risk_factor_imp[is.na(test$risk_factor_imp) & test$age_oldest<22] <- 3;table(test$risk_factor_imp, exclude=NULL)
+
+# C_previous
+test$C_previous_imp <- test$C_previous
+test$C_previous_imp[is.na(test$C_previous_imp)] <- 0;table(test$C_previous_imp, exclude=NULL)
+
+# duration_previous
+test$duration_previous_imp <- test$duration_previous
+test$duration_previous_imp[is.na(test$duration_previous_imp)] <- 0;table(test$duration_previous_imp, exclude=NULL)
+
+
+# Replace missing locations from State Level high frequency locations.
+test$location_imp <- test$location
+test$location_imp[which(is.na(test$location))] <- test2$mxloc[which(is.na(test$location))]
+
+colSums(is.na(test))[colSums(is.na(test)) > 0]
 
 # <----------------- End of Missing Impute ----------------> 
 
@@ -426,6 +511,8 @@ write.csv(cormat_table, "cormat_table.csv")
 #prp(tree.x)
 #fancyRpartPlot(tree.x,sub = "") # unreadable
 
+########## END EDA ###########
+
 # Create LDA model--
 #model.lda <- lda(A ~ shopping_pt + day + homeowner, data = train)
 #+ day + time + state + location + group_size + homeowner + car_age +
@@ -541,6 +628,21 @@ colSums(quoteChange_df,2)
 
 # study the changes G records
 changeG<-(subset(train.purchase.m,train.purchase.m$lastQuoted_G!=train.purchase.m$G))
+
+
+
+quoteChange_df<-data.frame(matrix(0,nrow=dim(train.purchase.m[validSubset,])[1],ncol=1))
+planOptions<-c("A","B","C","D","E","F","G")
+for (ii in 1:7)  {
+  quoteChange_df[paste(planOptions[ii],"_change",sep="")] <- as.numeric((get(paste("lastQuoted_",planOptions[ii],sep=""),train.purchase.m[validSubset,]))!=(get(planOptions[ii],train.purchase.m[validSubset,])))
+}
+quoteChange_df[1]<-NULL
+colSums(quoteChange_df,2)
+colSums(quoteChange_df,2)/dim(train.purchase.m[validSubset,])[1]
+
+1-mean(train.purchase.m$lastQuoted_G[validSubset]==train.purchase.m$G[validSubset])
+
+
 
 #####################################
 ## Impute missing values ##
@@ -1015,27 +1117,224 @@ set.seed(1)
 #LDA *B* 
 ####################
 set.seed(1)
+##Initial Full model
+
+ptm <- proc.time() # Start the clock!
+model.lda0.b <- lda(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                      Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4,
+                    data = train.purchase.m,
+                    subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#RunTime
+#user  system elapsed 
+#2.36    0.31    3.27 
+
+#classification accuracy for training data
+post.train.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[trainSubset,])
+plot(model.lda0.b, col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda0.b$class, train.purchase.m$B[trainSubset]) #confusion matrix
+mean(post.train.lda0.b$class==train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$B[trainSubset], post.train.lda0.b$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
+
+#classification accuracy for validation data
+post.valid.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[validSubset,])
+plot(model.lda0.b, col = as.integer(train.purchase.m$B[validSubset]), dimen = 2) #scatterplot with colors
+table(post.valid.lda0.b$class, train.purchase.m$B[validSubset]) #confusion matrix
+mean(post.valid.lda0.b$class==train.purchase.m$B[validSubset]) #what percent did we predict successfully?
+plot(train.purchase.m$B[validSubset], post.valid.lda0.b$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
 
 ####################
 # K-Nearest Neighbors *B*
 ####################
 set.seed(1)
 
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+dim(train.purchase.m.knn)
+
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+View(train.purchase.m.knn)
+
+set.seed(1)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,209 train | 6,043 valid
+
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
+View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c("B")]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c("B")]
+
+summary(knn.testLabels)
+### Building classifier 
+knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+
+#knn_pred
+
+CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+
 ####################
 # RandomForest *B*
 ####################
 set.seed(1)
+
+ptm <- proc.time() # Start the clock!
+
+model.rf.B <- randomForest(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4 ,
+                           data=train.purchase.m,subset = trainSubset,ntrees=500) 
+
+proc.time() - ptm # Stop the clock
+
+#RunTime
+#user  system elapsed 
+#114.52    0.93  116.36 
+
+#model summary,Var importance stats and plot
+model.rf.B
+randomForest::importance(model.rf.B)
+randomForest::varImpPlot(model.rf.B)
+
+# Predict random forest on validation set
+post.valid.rf.B <- predict(model.rf.B, train.purchase.m[validSubset,]) 
+length(post.valid.rf.B)
+#str(post.valid.rf.B)
+#str(train.purchase.m$B[validSubset])
+#Create a simple confusion matrix
+table(post.valid.rf.B,train.purchase.m$B[validSubset])
+
+#Check the misclassification rate
+error.rf.B <- round(mean(post.valid.rf.B!=train.purchase.m$B[validSubset]),4)
+error.rf.B
+
+#Compare against the misclassification rate for the base model 
+error.rf.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+error.rf.B.base 
+
+# Fit Metrics
+confusionMatrix(post.valid.rf.B,train.purchase.m$B[validSubset],)
+
 
 ####################
 # Boosting Model *B*
 ####################
 set.seed(1)
 
+ptm <- proc.time() # Start the clock!
+
+model.boost.B=gbm(B ~ (lastQuoted_B)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                    Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4  ,
+                  data=train.purchase.m[trainSubset,],
+                  distribution="multinomial",
+                  n.trees=1000,
+                  interaction.depth=2,
+                  shrinkage = .01)
+
+proc.time() - ptm # Stop the clock
+#RunTime
+#user  system elapsed 
+#151.54    0.47  153.98
+
+#relative influence statistics & plot.
+summary(model.boost.B)
+summaryBoost<-summary(model.boost.B)
+
+# Predict GBM on validation set
+post.valid.boost.prob.B <- predict(model.boost.B, train.purchase.m[validSubset,],type='response',n.trees=1000) 
+post.valid.boost.B<-apply(post.valid.boost.prob.B, 1, which.max) - 1
+length(post.valid.boost.B)
+head(post.valid.boost.B)
+
+#Create a simple confusion matrix
+table(post.valid.boost.B,train.purchase.m$B[validSubset])
+
+#Check the misclassification rate
+error.boost.B <- round(mean(post.valid.boost.B!=train.purchase.m$B[validSubset]),4)
+error.boost.B 
+
+#Compare against the misclassification rate for the base model 
+error.boost.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+error.boost.B.base 
+
+# Fit Metrics
+confusionMatrix(post.valid.boost.B,train.purchase.m$B[validSubset])
+
+#plot relative influence of variables
+summaryBoost<-summaryBoost[order(summaryBoost$rel.inf,decreasing=FALSE),]
+par(mar=c(3,10,3,3))
+barplot(t(summaryBoost$rel.inf),names.arg = summaryBoost$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
+
+
 ###################
 # SVM *B*
 ###################
 set.seed(1)
 
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+svm.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.svm<-train.purchase.m[train.purchase.m$part=="train",][svm.sample,] 
+dim(train.purchase.m.svm)
+
+# # We can perform cross-validation using tune() to select the best choice of
+# # gamma and cost for an SVM with a radial kernel:
+# set.seed(1)
+# control <- tune.control(nrepeat = 5,cross = 5)
+# tune.out = tune(
+#   svm,G ~ (lastQuoted_G) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+#     Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4  ,
+#   data = train.purchase.m.svm,
+#   kernel = "linear",
+#   ranges = list(cost = c(.01,.1,.5,1),
+#     gamma = c(1)),
+#   tunecontrol = control
+# )
+# summary(tune.out)
+
+
+#Fit a linear SVM Model
+ptm <- proc.time() # Start the clock!
+svmfit.B=svm(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+               Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4  ,
+             data=train.purchase.m.svm,
+             kernel="linear",  
+             gamma=.01, 
+             cost=1,
+             probability =TRUE)
+proc.time() - ptm # Stop the clock
+
+#Summary statitics
+summary(svmfit.B)
+
+#RunTime
+# user  system elapsed 
+# 156.099   1.407 158.419 
+
+# Predict SVM on validation set
+post.valid.svm.B<-predict(svmfit.B,train.purchase.m[validSubset,])
+length(post.valid.svm.B)
+
+#Create a simple confusion matrix
+table(post.valid.svm.B,train.purchase.m$B[validSubset])
+
+#Check the misclassification rate
+error.svm.B <- round(mean(post.valid.svm.B!=train.purchase.m$B[validSubset]),4)
+error.svm.B 
+# [1] 0.1363
+
+#Compare against the misclassification rate for the base model 
+error.svm.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+error.svm.B.base 
 
 
 ##########################################################################
@@ -1099,7 +1398,6 @@ set.seed(1)
 # SVM *D*
 ###################
 set.seed(1)
-
 
 
 ##########################################################################
@@ -1229,10 +1527,11 @@ head(test.m)
 #####################################
 ## Impute missing values ##
 #####################################
-#we could use a decision tree to impute missing values. I am using the median to get the models working. Please feel free to change #PB
-test.m$risk_factor[is.na(test.m$risk_factor)]<-median(train.purchase.m$risk_factor[!is.na(((train.purchase.m$risk_factor)))])
-test.m$C_previous[is.na(test.m$C_previous)]<-as.factor((which.max(table(train.purchase.m$C_previous))))
-test.m$duration_previous[is.na(test.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
+#Used decision tree to impute missing values for risk_factor.
+test.m$risk_factor <- test.m$risk_factor_imp
+test.m$C_previous <- test.m$C_previous_imp
+test.m$duration_previous <- test.m$duration_previous_imp
+test.m$location <- test.m$location_imp
 
 
 
