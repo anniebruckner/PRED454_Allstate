@@ -1565,25 +1565,144 @@ set.seed(1)
 ####################
 set.seed(1)
 
-####################
-# K-Nearest Neighbors *E*
-####################
-set.seed(1)
+##Initial Full model
+
+model.lda0.e <- lda(E ~ (lastQuoted_E) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                      Quoted_E_minus2 + Quoted_E_minus3 + Quoted_E_minus4,
+                    data = train.purchase.m,
+                    subset = trainSubset)
+
+#classification accuracy for training data
+post.train.lda0.e <- predict(object=model.lda0.e, newdata = train.purchase.m[trainSubset,])
+plot(model.lda0.e, col = as.integer(train.purchase.m$E[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda0.e$class, train.purchase.m$E[trainSubset]) #confusion matrix
+#     0     1    Total
+#0 37213   2681  39894
+#1  1866  30997  32863
+
+mean(post.train.lda0.e$class==train.purchase.m$E[trainSubset]) #what percent did we predict successfully?
+#0.9375043
+plot(train.purchase.m$E[trainSubset], post.train.lda0.e$class, col=c("blue","red"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
+
+#classification accuracy for validation data
+post.valid.lda0.e <- predict(object=model.lda0.e, newdata = train.purchase.m[validSubset,])
+plot(model.lda0.e, col = as.integer(train.purchase.m$E[validSubset]), dimen = 2) #scatterplot with colors
+table(post.valid.lda0.e$class, train.purchase.m$E[validSubset]) #confusion matrix
+#     0     1
+#0  12433   900   13333
+#1    620 10299   10919
+
+
+mean(post.valid.lda0.e$class==train.purchase.m$E[validSubset]) #what percent did we predict successfully?
+#0.9373248
+plot(train.purchase.m$E[validSubset], post.valid.lda0.e$class, col=c("blue","red"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
+
+
 
 ####################
 # RandomForest *E*
 ####################
 set.seed(1)
 
+model.rf.E <- randomForest(E ~ (lastQuoted_E) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_E_minus2 + Quoted_E_minus3 + Quoted_E_minus4 ,
+                           data=train.purchase.m,subset = trainSubset,ntrees=500) 
+
+#model summary,Var importance stats and plot
+model.rf.E
+randomForest::importance(model.rf.E)
+randomForest::varImpPlot(model.rf.E)
+
+# Predict random forest on validation set
+post.valid.rf.E <- predict(model.rf.E, train.purchase.m[validSubset,]) 
+length(post.valid.rf.E)
+
+#Create a simple confusion matrix
+table(post.valid.rf.E,train.purchase.m$E[validSubset])
+#post.valid.rf.E     0     1     
+#0  12518   1175    
+#1    535  10024
+
+#Check the misclassification rate
+error.rf.E <- round(mean(post.valid.rf.E!=train.purchase.m$E[validSubset]),4)
+error.rf.E #0.0705
+
+#Compare against the misclassification rate for the base model 
+error.rf.E.base <- round(mean(train.purchase.m$lastQuoted_E[validSubset]!=train.purchase.m$E[validSubset]),4)
+error.rf.E.base #0.0627
+
+# Error: could not find function "confusionMatrix"
+confusionMatrix(post.valid.rf.E,train.purchase.m$E[validSubset],)
+
+summary(model.rf.E)
+
+
+
+
+
 ####################
 # Boosting Model *E*
 ####################
-set.seed(1)
 
-###################
-# SVM *E*
-###################
 set.seed(1)
+model.boost.E=gbm(E ~ (lastQuoted_E)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                    Quoted_E_minus2 + Quoted_E_minus3 + Quoted_E_minus4  ,
+                  data=train.purchase.m[trainSubset,],
+                  distribution="multinomial",
+                  n.trees=1000,
+                  interaction.depth=4,
+                  shrinkage = .01)
+
+#relative influence statistics & plot.
+summary(model.boost.E)
+#var      rel.inf
+#lastQuoted_E       lastQuoted_E 95.401047796
+#Quoted_E_minus2 Quoted_E_minus2  1.400669139
+#cost                       cost  0.794831135
+#car_age                 car_age  0.753168589
+#state                     state  0.460904932
+#Quoted_E_minus3 Quoted_E_minus3  0.400308785
+#age_youngest       age_youngest  0.266875249
+#Quoted_E_minus4 Quoted_E_minus4  0.234940325
+#age_oldest           age_oldest  0.123565662
+#shopping_pt         shopping_pt  0.091063534
+#risk_factor         risk_factor  0.044803514
+#car_value             car_value  0.020386805
+#day                         day  0.007434535
+summaryBoostE<-summary(model.boost.E)
+
+# Predict GBM on validation set
+post.valid.boost.prob.E <- predict(model.boost.E, train.purchase.m[validSubset,],type='response',n.trees=1000) 
+post.valid.boost.E<-apply(post.valid.boost.prob.E, 1, which.max)
+length(post.valid.boost.E)
+head(post.valid.boost.E)
+
+#Create a simple confusion matrix
+table(post.valid.boost.E,train.purchase.m$E[validSubset])
+#post.valid.boost.A     0     1     
+#0  12458   906   13364
+#1    595 10293   10888
+
+
+#Check the misclassification rate
+error.boost.E <- round(mean(post.valid.boost.E!=train.purchase.m$E[validSubset]),4)
+error.boost.E 
+#0.9626
+
+#Compare against the misclassification rate for the base model 
+error.boost.E.base <- round(mean(train.purchase.m$lastQuoted_E[validSubset]!=train.purchase.m$E[validSubset]),4)
+error.boost.E.base
+#0.0627
+
+# Fit Metrics
+# Error: could not find function "confusionMatrix"
+confusionMatrix(post.valid.boost.E,train.purchase.m$E[validSubset],)
+
+#plot relative influence of variables
+summaryBoostE<-summaryBoostE[order(summaryBoostE$rel.inf,decreasing=FALSE),]
+par(mar=c(3,10,3,3))
+barplot(t(summaryBoostE$rel.inf),names.arg = summaryBoostE$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
+
 
 
 
