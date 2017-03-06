@@ -926,34 +926,18 @@ error.svm.G.base
 ## Option *A* Models ##
 ##########################################################################
 
-# Copy training data and remove factor variables with > 53 levels
-
-train.purchase.m.A <- train.purchase.m
-train.purchase.m.A$state <- NULL
-train.purchase.m.A$location <- NULL
-train.purchase.m.A$time <- NULL
-
 # Create RF model
 ptm <- proc.time() # Start the clock!
 set.seed(1)
-model.RF.naive.A <- randomForest(na.omit(A ~ .), data = train.purchase.m.A, ntree =500)
+model.RF.naive.A <- randomForest(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                                           Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + homeowner + married_couple + group_size, data = train.purchase.m, ntree =500)
 proc.time() - ptm # Stop the clock
-#Error in na.fail.default: missing values in object
-# Error in na.fail.default(list(G = c(2L, 1L, 1L, 1L, 1L, 1L, 1L, 2L, 2L,  : 
-#missing values in object
-#Error in randomForest.default(m, y, ...) : 
-#  NA/NaN/Inf in foreign function call (arg 1)
-#In addition: Warning messages:
-#  1: In data.matrix(x) : NAs introduced by coercion
-#2: In data.matrix(x) : NAs introduced by coercion
-#importance(model.RF.naive.A)
-#varImpPlot(model.RF.naive, main = "Random Forest Model: \n Variable Importance")
+#   user  system elapsed 
+#748.162  18.492 805.550 
 
-set.seed(1)
-ptm <- proc.time() # Start the clock!
-model.rf.A.var <- randomForest(A ~ ., data=train.purchase.m.A ,subset = trainSubset, ntrees=500) 
-proc.time() - ptm # Stop the clock
-
+varImpPlot(model.RF.naive.A, main = "Random Forest Model: \n Variable Importance")
+importance(model.RF.naive.A)
+#homeowner + married_couple + group_size don't appear as important--will leave out for other models
 
 ####################
 #LDA *A* 
@@ -963,7 +947,7 @@ set.seed(1)
 ##Initial Full model
 
 ptm <- proc.time() # Start the clock!
-model.lda0.a <- lda(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+model.lda0.a <- lda(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                       Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
                     data = train.purchase.m,
                     subset = trainSubset)
@@ -981,8 +965,8 @@ table(post.train.lda0.a$class, train.purchase.m$A[trainSubset]) #confusion matri
 #1  1116 43070  1828
 #2   286   844  9927
 
-mean(post.train.lda0.a$class==train.purchase.m$A[trainSubset]) #what percent did we predict successfully?
-#0.9295326
+1-(mean(post.train.lda0.a$class==train.purchase.m$A[trainSubset])) #what percent did we predict successfully?
+#0.07046745
 plot(train.purchase.m$A[trainSubset], post.train.lda0.a$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
 
 #classification accuracy for validation data
@@ -994,10 +978,11 @@ table(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #confusion matri
 #1   325 14349   710
 #2    96   288  3214
 
-mean(post.valid.lda0.a$class==train.purchase.m$A[validSubset]) #what percent did we predict successfully?
-#0.92714
+1-(mean(post.valid.lda0.a$class==train.purchase.m$A[validSubset])) #what percent did we predict successfully?
+#0.07285997
 plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
 
+confusionMatrix(post.valid.lda0.a,train.purchase.m$A[validSubset],)
 
 ####################
 # K-Nearest Neighbors *A*
@@ -1042,14 +1027,45 @@ knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3
 #knn_pred
 
 CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+confusionMatrix(post.valid.lda0.a,train.purchase.m$A[validSubset],)
 
+set.seed(1)
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+dim(train.purchase.m.knn)
+library(class)
+
+ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+knnFitA <- train(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + C_previous_imp + duration_previous_imp  + group_size + homeowner + married_couple
+                , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
+
+#Error in train.formula(A ~ (lastQuoted_A) + risk_factor_imp + car_age +  : 
+#                          Every row has at least one missing value were found
+
+
+knnPredictA <- predict(knnFitA,newdata = train.purchase.m[validSubset,])
+
+knn.trainLabels <- train.purchase.m.knn[,c('A')]
+knn.testLabels <- train.purchase.m[validSubset,c('A')]
+
+summary(knn.testLabels)
+### Building classifier 
+knn_predA <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+knn_predA
+
+library(gmodels)
+CrossTable(x = knn.testLabels, y = knn_predA, prop.chisq=FALSE)
 
 ####################
 # RandomForest *A*
 ####################
 set.seed(1)
 ptm <- proc.time() # Start the clock!
-model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                              Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 ,
                            data=train.purchase.m,subset = trainSubset,ntrees=500) 
 
