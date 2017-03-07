@@ -652,9 +652,9 @@ train<-merge(x=train,y=lookup,by="customer_ID")
 #train.purchase.m$C_previous[is.na(train.purchase.m$C_previous)]<-as.factor((which.max(table(train.purchase.m$C_previous))))
 #train.purchase.m$duration_previous[is.na(train.purchase.m$duration_previous)]<-median(train.purchase.m$duration_previous[!is.na(((train.purchase.m$duration_previous)))])
 
-train.purchase.m$risk_factor <- train.purchase.m$risk_factor_imp 
-train.purchase.m$C_previous <- train.purchase.m$C_previous_imp
-train.purchase.m$duration_previous <- train.purchase.m$duration_previous_imp
+#train.purchase.m$risk_factor <- train.purchase.m$risk_factor_imp 
+#train.purchase.m$C_previous <- train.purchase.m$C_previous_imp
+#train.purchase.m$duration_previous <- train.purchase.m$duration_previous_imp
 
 summary(train.purchase.m)
 
@@ -2654,10 +2654,10 @@ head(test.m)
 ## Impute missing values ##
 #####################################
 #Used decision tree to impute missing values for risk_factor.
-test.m$risk_factor <- test.m$risk_factor_imp
-test.m$C_previous <- test.m$C_previous_imp
-test.m$duration_previous <- test.m$duration_previous_imp
-test.m$location <- test.m$location_imp
+#test.m$risk_factor <- test.m$risk_factor_imp
+#test.m$C_previous <- test.m$C_previous_imp
+#test.m$duration_previous <- test.m$duration_previous_imp
+#test.m$location <- test.m$location_imp
 
 
 
