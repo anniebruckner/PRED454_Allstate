@@ -1469,24 +1469,24 @@ table(post.valid.rf.B,train.purchase.m$B[validSubset])
 #Check the misclassification rate
 error.train.rf.B <- round(mean(post.train.rf.B!=train.purchase.m$B[trainSubset]),4)
 error.train.rf.B
-# 0.0463
+# 0.0553
 
 
 #Check the misclassification rate
 error.rf.B <- round(mean(post.valid.rf.B!=train.purchase.m$B[validSubset]),4)
 error.rf.B
-# 0.048
+# 0.0682
 
 #Compare against the misclassification rate for the base model 
 error.rf.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
 error.rf.B.base 
-# 0.0484
+# 0.0664
 
 # Fit Metrics
 confusionMatrix(post.valid.rf.B,train.purchase.m$B[validSubset],)
 # 
-# Accuracy : 0.952
-# Kappa : 0.908    
+# Accuracy : 0.9318
+# Kappa : 0.863    
 
 
 # Class: 1 Class: 2 Class: 3
