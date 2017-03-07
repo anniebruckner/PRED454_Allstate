@@ -1322,6 +1322,10 @@ post.train.lda.B <- predict(object=model.lda.B, newdata = train.purchase.m[train
 table(post.train.lda.B$class, train.purchase.m$B[trainSubset]) #confusion matrix
 mean(post.train.lda.B$class!=train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
 #0.06572563
+#compare against misclassification rate for base model of training set
+round(mean(train.purchase.m$lastQuoted_B[trainSubset]!=train.purchase.m$B[trainSubset]),4)
+#0.0657
+
 # plot(train.purchase.m$D[trainSubset], post.train.lda.D$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
 
 #classification accuracy for validation data
