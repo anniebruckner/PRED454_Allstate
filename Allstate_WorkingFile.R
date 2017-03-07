@@ -54,7 +54,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -1307,28 +1307,42 @@ set.seed(1)
 ##Initial Full model
 
 ptm <- proc.time() # Start the clock!
-model.lda0.b <- lda(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                      Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4,
-                    data = train.purchase.m,
-                    subset = trainSubset)
+model.lda.B <- lda(B ~ (lastQuoted_B) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                     Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4 + C_previous_imp + duration_previous_imp  + group_size + homeowner + married_couple,
+                   data = train.purchase.m,
+                   subset = trainSubset)
 proc.time() - ptm # Stop the clock
-#RunTime
+# #RunTime
 #user  system elapsed 
-#2.36    0.31    3.27 
+#2.04    0.18    2.23 
 
 #classification accuracy for training data
-post.train.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[trainSubset,])
-plot(model.lda0.b, col = as.integer(train.purchase.m$B[-validSubset]), dimen = 2) #scatterplot with colors
-table(post.train.lda0.b$class, train.purchase.m$B[trainSubset]) #confusion matrix
-mean(post.train.lda0.b$class==train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
-plot(train.purchase.m$B[trainSubset], post.train.lda0.b$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
+post.train.lda.B <- predict(object=model.lda.B, newdata = train.purchase.m[trainSubset,])
+# plot(model.lda.D, col = as.integer(train.purchase.m$D[-validSubset]), dimen = 2) #scatterplot with colors
+table(post.train.lda.B$class, train.purchase.m$B[trainSubset]) #confusion matrix
+mean(post.train.lda.B$class!=train.purchase.m$B[trainSubset]) #what percent did we predict successfully?
+#0.06572563
+# plot(train.purchase.m$D[trainSubset], post.train.lda.D$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
 
 #classification accuracy for validation data
-post.valid.lda0.b <- predict(object=model.lda0.b, newdata = train.purchase.m[validSubset,])
-plot(model.lda0.b, col = as.integer(train.purchase.m$B[validSubset]), dimen = 2) #scatterplot with colors
-table(post.valid.lda0.b$class, train.purchase.m$B[validSubset]) #confusion matrix
-mean(post.valid.lda0.b$class==train.purchase.m$B[validSubset]) #what percent did we predict successfully?
-plot(train.purchase.m$B[validSubset], post.valid.lda0.b$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
+post.valid.lda.B <- predict(object=model.lda.B, newdata = train.purchase.m[validSubset,])$class
+length(post.valid.lda.B)
+# plot(model.lda.D, col = as.integer(train.purchase.m$D[validSubset]), dimen = 2) #scatterplot with colors
+table(post.valid.lda.B, train.purchase.m$B[validSubset]) #confusion matrix
+# plot(train.purchase.m$D[validSubset], post.valid.lda.D$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
+
+#Check the misclassification rate
+error.lda.B <- round(mean(post.valid.lda.B!=train.purchase.m$B[validSubset]),4)
+error.lda.B
+# 0.0664
+
+#Compare against the misclassification rate for the base model 
+error.lda.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
+error.lda.B.base 
+# 0.0484
+
+confusionMatrix(post.valid.lda.B,train.purchase.m$B[validSubset],)
+# Kappa 0.9074    
 
 ####################
 # K-Nearest Neighbors *B*
