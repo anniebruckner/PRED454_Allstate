@@ -531,27 +531,6 @@ write.csv(cormat_table, "cormat_table.csv")
 #model.lda2 <- lda(A ~ , data = train)
 #plot(model.lda2)
 
-
-#####################################
-## Train/Validation Split ##
-#####################################
-
-# 75/25 train/validation split            #PB
-n <-dim(train.purchase.m)[1] # sample size = 97009 customers purchase a policy
-set.seed(1233) # set random number generator seed to enable
-# repeatability of results
-valid <- sample(n, round(.25*n)) # randomly sample 25% test
-train.purchase.m$part<-0
-train.purchase.m$part[-valid] <-"train"
-train.purchase.m$part[valid]  <-"valid"
-table(train.purchase.m$part)
-trainSubset<-(which(train.purchase.m$part=="train"))
-validSubset<-(which(train.purchase.m$part=="valid"))
-
-# add variable "part" to the full training data set
-lookup<-train.purchase.m[c("customer_ID","part")]
-train<-merge(x=train,y=lookup,by="customer_ID")
-
 #####################################
 ## Data manipulation for Model Build ## 
 #####################################
@@ -640,6 +619,27 @@ colSums(quoteChange_df,2)/dim(train.purchase.m[validSubset,])[1]
 
 1-mean(train.purchase.m$lastQuoted_G[validSubset]==train.purchase.m$G[validSubset])
 #0.1374732
+
+
+#####################################
+## Train/Validation Split ##
+#####################################
+
+# 75/25 train/validation split            #PB
+n <-dim(train.purchase.m)[1] # sample size = 97009 customers purchase a policy
+set.seed(1233) # set random number generator seed to enable
+# repeatability of results
+valid <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m$part<-0
+train.purchase.m$part[-valid] <-"train"
+train.purchase.m$part[valid]  <-"valid"
+table(train.purchase.m$part)
+trainSubset<-(which(train.purchase.m$part=="train"))
+validSubset<-(which(train.purchase.m$part=="valid"))
+
+# add variable "part" to the full training data set
+lookup<-train.purchase.m[c("customer_ID","part")]
+train<-merge(x=train,y=lookup,by="customer_ID")
 
 
 #####################################
