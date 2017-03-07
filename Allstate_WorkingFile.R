@@ -1343,10 +1343,10 @@ error.lda.B
 #Compare against the misclassification rate for the base model 
 error.lda.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
 error.lda.B.base 
-# 0.0484
+# 0.0664
 
 confusionMatrix(post.valid.lda.B,train.purchase.m$B[validSubset],)
-# Kappa 0.9074    
+# Kappa 0.8667    
 
 ####################
 # K-Nearest Neighbors *B*
@@ -1387,6 +1387,49 @@ knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3
 
 CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
 
+#knn second method
+set.seed(1)
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+dim(train.purchase.m.knn)
+library(class)
+
+ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+knnFit <- train(B ~ (lastQuoted_B) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4 + C_previous_imp + duration_previous_imp  + group_size + homeowner + married_couple
+                , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
+
+
+# Resampling results across tuning parameters:
+#   
+#   k   Accuracy   Kappa      Accuracy SD  Kappa SD   
+# 5  0.9207772  0.8450820  0.005632213  0.011662121
+# 7  0.9225365  0.8484299  0.007032948  0.014358392
+# 9  0.9216569  0.8463100  0.005811135  0.011981198
+# 11  0.9205566  0.8437952  0.004690705  0.009812055
+# 13  0.9205023  0.8434500  0.005354910  0.011164977
+# 
+# Accuracy was used to select the optimal model using  the largest value.
+# The final value used for the model was k = 7. 
+
+knnPredict <- predict(knnFit,newdata = train.purchase.m[validSubset,])
+
+
+
+knn.trainLabels <- train.purchase.m.knn[,c('B')]
+knn.testLabels <- train.purchase.m[validSubset,c('B')]
+
+summary(knn.testLabels)
+### Building classifier 
+knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+knn_pred
+
+library(gmodels)
+CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+
 ####################
 # RandomForest *B*
 ####################
@@ -1394,40 +1437,67 @@ set.seed(1)
 
 ptm <- proc.time() # Start the clock!
 
-model.rf.B <- randomForest(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                             Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4 ,
+model.rf.B <- randomForest(B ~ (lastQuoted_B) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                             Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4 + C_previous_imp + duration_previous_imp  + group_size + homeowner + married_couple,
                            data=train.purchase.m,subset = trainSubset,ntrees=500) 
 
 proc.time() - ptm # Stop the clock
 
 #RunTime
 #user  system elapsed 
-#114.52    0.93  116.36 
+#730.899   6.797 742.187 
 
 #model summary,Var importance stats and plot
 model.rf.B
 randomForest::importance(model.rf.B)
 randomForest::varImpPlot(model.rf.B)
 
+post.train.rf.B <- predict(model.rf.B, train.purchase.m[trainSubset,]) 
+
 # Predict random forest on validation set
 post.valid.rf.B <- predict(model.rf.B, train.purchase.m[validSubset,]) 
 length(post.valid.rf.B)
-#str(post.valid.rf.B)
-#str(train.purchase.m$B[validSubset])
+
 #Create a simple confusion matrix
 table(post.valid.rf.B,train.purchase.m$B[validSubset])
+# post.valid.rf.D     1     2     3
+# 1  2977   186   204
+# 2    94  5042   407
+# 3    75   198 15069
+
+
+#Check the misclassification rate
+error.train.rf.B <- round(mean(post.train.rf.B!=train.purchase.m$B[trainSubset]),4)
+error.train.rf.B
+# 0.0463
+
 
 #Check the misclassification rate
 error.rf.B <- round(mean(post.valid.rf.B!=train.purchase.m$B[validSubset]),4)
 error.rf.B
+# 0.048
 
 #Compare against the misclassification rate for the base model 
 error.rf.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
 error.rf.B.base 
+# 0.0484
 
 # Fit Metrics
 confusionMatrix(post.valid.rf.B,train.purchase.m$B[validSubset],)
+# 
+# Accuracy : 0.952
+# Kappa : 0.908    
 
+
+# Class: 1 Class: 2 Class: 3
+# Sensitivity            0.9463   0.9292   0.9610
+# Specificity            0.9815   0.9734   0.9682
+# Pos Pred Value         0.8842   0.9096   0.9822
+# Neg Pred Value         0.9919   0.9795   0.9314
+# Prevalence             0.1297   0.2237   0.6465
+# Detection Rate         0.1228   0.2079   0.6214
+# Detection Prevalence   0.1388   0.2286   0.6326
+# Balanced Accuracy      0.9639   0.9513   0.9646
 
 ####################
 # Boosting Model *B*
