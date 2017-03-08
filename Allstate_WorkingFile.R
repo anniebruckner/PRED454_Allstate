@@ -1059,6 +1059,9 @@ knnPredictA <- predict(knnFitA,newdata = train.purchase.m[validSubset,])
 knn.trainLabels <- train.purchase.m.knn[,c('A')]
 knn.testLabels <- train.purchase.m[validSubset,c('A')]
 
+colSums(is.na(knn.training))[colSums(is.na(knn.training)) > 0]
+colSums(is.na(knn.test))[colSums(is.na(knn.test)) > 0]
+
 summary(knn.testLabels)
 #    0     1     2 
 #5343 14891  4018 
@@ -1070,6 +1073,63 @@ knn_predA
 
 library(gmodels)
 CrossTable(x = knn.testLabels, y = knn_predA, prop.chisq=FALSE)
+
+### Ahmar's Method
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+dim(train.purchase.m.knn)
+#18189    62
+
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+#24252    62
+#View(train.purchase.m.knn)
+
+train.purchase.m.knn$Quoted_A_minus3 = as.numeric(train.purchase.m.knn$Quoted_A_minus3)
+train.purchase.m.knn$Quoted_A_minus2 = as.numeric(train.purchase.m.knn$Quoted_A_minus2)
+train.purchase.m.knn$Quoted_A_minus4 = as.numeric(train.purchase.m.knn$Quoted_A_minus4)
+train.purchase.m.knn$lastQuoted_A = as.numeric(train.purchase.m.knn$lastQuoted_A)
+train.purchase.m.knn$C_previous_imp = as.numeric(train.purchase.m.knn$C_previous_imp)
+train.purchase.m.knn$married_couple = as.numeric(train.purchase.m.knn$married_couple)
+train.purchase.m.knn$car_value = as.numeric(train.purchase.m.knn$car_value)
+train.purchase.m.knn$homeowner = as.numeric(train.purchase.m.knn$homeowner)
+train.purchase.m.knn$state = as.numeric(train.purchase.m.knn$state)
+train.purchase.m.knn$day = as.numeric(train.purchase.m.knn$day)
+
+set.seed(1)
+library(class)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,226 train | 6,026 valid
+
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(2,4,6,8,9,10,11,13,14,15,25,26,27,28,42,43,44,45)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(2,4,6,8,9,10,11,13,14,15,25,26,27,28,42,43,44,45)]
+#View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", 20]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", 20]
+
+colSums(is.na(knn.training))[colSums(is.na(knn.training)) > 0]
+colSums(is.na(knn.test))[colSums(is.na(knn.test)) > 0]
+
+table(knn.trainLabels)
+table(knn.testLabels)
+
+summary(knn.testLabels)
+### Building classifier 
+knn_pred <- knn(train= knn.training, test= knn.test, cl = knn.trainLabels, k=3) #, l=0, prob=TRUE, use.all = TRUE)
+
+knn_pred
+
+library(gmodels)
+CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+
 
 ####################
 # RandomForest *A*
