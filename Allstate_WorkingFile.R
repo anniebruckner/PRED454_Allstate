@@ -54,7 +54,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -930,7 +930,8 @@ error.svm.G.base
 ptm <- proc.time() # Start the clock!
 set.seed(1)
 model.RF.naive.A <- randomForest(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                                           Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + homeowner + married_couple + group_size, data = train.purchase.m, ntree =500)
+                                           Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + homeowner + married_couple + group_size + C_previous_imp + duration_previous_imp,
+                                 data = train.purchase.m, ntree =500)
 proc.time() - ptm # Stop the clock
 #   user  system elapsed 
 #748.162  18.492 805.550 
@@ -948,7 +949,7 @@ set.seed(1)
 
 ptm <- proc.time() # Start the clock!
 model.lda0.a <- lda(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                      Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
+                      Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + C_previous_imp + duration_previous_imp,
                     data = train.purchase.m,
                     subset = trainSubset)
 proc.time() - ptm # Stop the clock
@@ -985,41 +986,46 @@ plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red
 confusionMatrix(post.valid.lda0.a,train.purchase.m$A[validSubset],)
 #Error in sort.list(y) : 'x' must be atomic for 'sort.list'
 #Have you called 'sort' on a list?
+table(post.valid.lda0.a,train.purchase.m$A[validSubset])
 
 ####################
 # K-Nearest Neighbors *A*  -- can't get KNN to work
 ####################
-set.seed(1)
+#set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
-n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+#n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
 # repeatability of results
-knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
-train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
-dim(train.purchase.m.knn)
+#knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+#train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+#dim(train.purchase.m.knn)
+#18189    62
 
 ### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
-n <-dim(train.purchase.m)[1] 
-knn.sample <- sample(n, round(.25*n)) 
-train.purchase.m.knn<-train.purchase.m[knn.sample,] 
-dim(train.purchase.m.knn)
+#n <-dim(train.purchase.m)[1] 
+#knn.sample <- sample(n, round(.25*n)) 
+#train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+#dim(train.purchase.m.knn)
+#24252    62
 #View(train.purchase.m.knn)
 
-set.seed(1)
-dim(train.purchase.m.knn)
-table(train.purchase.m.knn$part)
-### 24,252 observations | 18,209 train | 6,043 valid
+#set.seed(1)
+#dim(train.purchase.m.knn)
+#table(train.purchase.m.knn$part)
+### 24,252 observations | 18,221 train | 6,031 valid
 
 ### Define KNN training and test sets
-knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
-knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
+#knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
+#knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
 #View(knn.training)
-knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c("A")]
-knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c("A")]
+#knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c("A")]
+#knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c("A")]
 
-summary(knn.testLabels)
+#summary(knn.testLabels)
+#  0    1    2 
+#1398 3678  955 
 
 ### Building classifier -- can't get this to work
-knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+#knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
 #Error in knn(train = knn.training, test = knn.test, cl = knn.trainLabels,  : 
 #               k = 0 must be at least 1
 #             In addition: Warning message:
@@ -1028,8 +1034,8 @@ knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3
 
 #knn_pred
 
-CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
-confusionMatrix(post.valid.lda0.a,train.purchase.m$A[validSubset],)
+#CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+#confusionMatrix(post.valid.lda0.a,train.purchase.m$A[validSubset],)
 
 ### Trying a different way below ###
 
@@ -1040,16 +1046,13 @@ n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1]
 knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
 train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
 dim(train.purchase.m.knn)
+#18189    62
 library(class)
 
 ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
 knnFitA <- train(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                  Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + group_size + homeowner + married_couple
+                  Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + C_previous_imp + duration_previous_imp
                 , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
-
-#Error in train.formula(A ~ (lastQuoted_A) + risk_factor_imp + car_age +  : 
-#                          Every row has at least one missing value were found
-
 
 knnPredictA <- predict(knnFitA,newdata = train.purchase.m[validSubset,])
 
@@ -1057,8 +1060,12 @@ knn.trainLabels <- train.purchase.m.knn[,c('A')]
 knn.testLabels <- train.purchase.m[validSubset,c('A')]
 
 summary(knn.testLabels)
-### Building classifier 
+#    0     1     2 
+#5343 14891  4018 
+### Building classifier -- doesn't work
 knn_predA <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+#Error in knn(train = knn.training, test = knn.test, cl = knn.trainLabels,  : 
+#no missing values are allowed
 knn_predA
 
 library(gmodels)
@@ -1070,7 +1077,7 @@ CrossTable(x = knn.testLabels, y = knn_predA, prop.chisq=FALSE)
 set.seed(1)
 ptm <- proc.time() # Start the clock!
 model.rf.A <- randomForest(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                             Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 ,
+                             Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + C_previous_imp + duration_previous_imp,
                            data=train.purchase.m,subset = trainSubset,ntrees=500) 
 
 proc.time() - ptm # Stop the clock
@@ -1089,48 +1096,49 @@ length(post.valid.rf.A)
 #Create a simple confusion matrix
 table(post.valid.rf.A,train.purchase.m$A[validSubset])
 #post.valid.rf.A     0     1     2
-#0  4965   240    81
-#1   283 14363   723
-#2    95   288  3214
+#              0  4974   241    81
+#              1   277 14360   728
+#              2    92   290  3209
 
 #Check the misclassification rate
 error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[validSubset]),4)
-error.rf.A #0.0705
+error.rf.A
+#0.0705
 
 #Compare against the misclassification rate for the base model 
 error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
-error.rf.A.base #0.0729
+error.rf.A.base
+#0.0729
 
 # Fit Metrics
 confusionMatrix(post.valid.rf.A,train.purchase.m$A[validSubset],)
 #Confusion Matrix and Statistics
 #Reference
 #Prediction     0     1     2
-#0  4965   240    81
-#1   283 14363   723
-#2    95   288  3214
+#0  4974   241    81
+#1   277 14360   728
+#2    92   290  3209
 
 #Overall Statistics
-
 #Accuracy : 0.9295          
 #95% CI : (0.9262, 0.9327)
 #No Information Rate : 0.614           
 #P-Value [Acc > NIR] : < 2.2e-16       
 
-#Kappa : 0.869           
+#Kappa : 0.8691          
 #Mcnemar's Test P-Value : < 2.2e-16       
 
 #Statistics by Class:
 
-#                     Class: 0 Class: 1 Class: 2
-#Sensitivity            0.9293   0.9645   0.7999
-#Specificity            0.9830   0.8925   0.9811
-#Pos Pred Value         0.9393   0.9345   0.8935
-#Neg Pred Value         0.9801   0.9406   0.9611
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9309   0.9643   0.7987
+#Specificity            0.9830   0.8926   0.9811
+#Pos Pred Value         0.9392   0.9346   0.8936
+#Neg Pred Value         0.9805   0.9402   0.9608
 #Prevalence             0.2203   0.6140   0.1657
-#Detection Rate         0.2047   0.5922   0.1325
-#Detection Prevalence   0.2180   0.6337   0.1483
-#Balanced Accuracy      0.9561   0.9285   0.8905
+#Detection Rate         0.2051   0.5921   0.1323
+#Detection Prevalence   0.2184   0.6336   0.1481
+#Balanced Accuracy      0.9570   0.9285   0.8899
 
 
 ####################
@@ -1140,7 +1148,7 @@ confusionMatrix(post.valid.rf.A,train.purchase.m$A[validSubset],)
 ptm <- proc.time() # Start the clock!
 set.seed(1)
 model.boost.A=gbm(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                    Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
+                    Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + C_previous_imp + duration_previous_imp,
                   data=train.purchase.m[trainSubset,],
                   distribution="multinomial",
                   n.trees=1000,
@@ -1154,19 +1162,21 @@ proc.time() - ptm # Stop the clock
 #relative influence statistics & plot.
 summary(model.boost.A)
 #var      rel.inf
-#lastQuoted_A       lastQuoted_A 92.328072714
-#Quoted_A_minus2 Quoted_A_minus2  3.032895016
-#car_age                 car_age  1.438400995
-#cost                       cost  1.113347824
-#Quoted_A_minus3 Quoted_A_minus3  0.808758078
-#state                     state  0.632935398
-#Quoted_A_minus4 Quoted_A_minus4  0.377225706
-#age_youngest       age_youngest  0.137980397
-#risk_factor         risk_factor  0.064046183
-#age_oldest           age_oldest  0.049202355
-#shopping_pt         shopping_pt  0.009389194
-#car_value             car_value  0.005511336
-#day                         day  0.002234804
+#lastQuoted_A                   lastQuoted_A 92.309232045
+#Quoted_A_minus2             Quoted_A_minus2  3.031761469
+#car_age                             car_age  1.436593186
+#cost                                   cost  1.109095993
+#Quoted_A_minus3             Quoted_A_minus3  0.808908619
+#state                                 state  0.628317815
+#Quoted_A_minus4             Quoted_A_minus4  0.374617269
+#age_youngest                   age_youngest  0.128697563
+#risk_factor_imp             risk_factor_imp  0.060140494
+#age_oldest                       age_oldest  0.044539081
+#duration_previous_imp duration_previous_imp  0.036031368
+#C_previous_imp               C_previous_imp  0.017624987
+#shopping_pt                     shopping_pt  0.007892330
+#car_value                         car_value  0.004329008
+#day                                     day  0.002218774
 #summaryBoostA<-summary(model.boost.A)
 
 # Predict ABM on validation set
@@ -1181,9 +1191,9 @@ head(post.valid.boost.A)
 #Create a simple confusion matrix
 table(post.valid.boost.A,train.purchase.m$A[validSubset])
 #post.valid.boost.A     0     1     2
-#1  4997   232    77
-#2   264 14369   727
-#3    82   290  3214
+#1  4996   228    78
+#2   267 14373   728
+#3    80   290  3212
 
 #Compare against the misclassification rate for the base model 
 error.train.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[trainSubset]!=train.purchase.m$A[trainSubset]),4)
@@ -1192,12 +1202,12 @@ error.train.boost.A.base
 
 train.error.boost.A <- round(mean(post.train.boost.A!=train.purchase.m$A[trainSubset]),4)
 train.error.boost.A 
-#0.9649
+#0.965
 
 #Check the misclassification rate
 error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[validSubset]),4)
 error.boost.A
-# 0.9605
+# 0.9606
 
 #Compare against the misclassification rate for the base model 
 error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
@@ -1216,7 +1226,7 @@ barplot(t(summaryBoostA$rel.inf),names.arg = summaryBoostA$var ,las=2,col="darkb
 
 
 ###################
-# SVM *A* -- does not work
+# SVM *A*
 ###################
 set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
@@ -1225,7 +1235,7 @@ n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1]
 svm.sample <- sample(n, round(.25*n)) # randomly sample 25% test
 train.purchase.m.svm<-train.purchase.m[train.purchase.m$part=="train",][svm.sample,] 
 dim(train.purchase.m.svm)
-#0 61
+#18189    62
 
 
 # # We can perform cross-validation using tune() to select the best choice of
@@ -1247,25 +1257,24 @@ dim(train.purchase.m.svm)
 #Fit a linear SVM Model
 ptm <- proc.time() # Start the clock!
 svmfit.A=svm(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-               Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4,
+               Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + C_previous_imp + duration_previous_imp,
              data=train.purchase.m.svm,
              kernel="linear",  
              gamma=.01, 
              cost=1,
              probability =TRUE)
-#Error in if (any(co)) { : missing value where TRUE/FALSE needed
 proc.time() - ptm # Stop the clock
 
 #Summary statitics
-#summary(svmfit.A)
+summary(svmfit.A)
 #Parameters:
 #  SVM-Type:  C-classification 
 #SVM-Kernel:  linear 
 #cost:  1 
 #gamma:  0.01 
 
-#Number of Support Vectors:  3430
-#( 1722 989 719 )
+#Number of Support Vectors:  3699
+#( 1908 1054 737 )
 #Number of Classes:  3 
 #Levels: 
 #  0 1 2
@@ -1281,14 +1290,14 @@ length(post.valid.svm.A) #24252
 #Create a simple confusion matrix
 table(post.valid.svm.A,train.purchase.m$A[validSubset])
 #post.valid.svm.A     0     1     2
-#0  4909   228    78
-#1   361 14380   740
-#2    73   283  3200
+#               0  4910   224    77
+#               1   360 14386   738
+#               2    73   281  3203
 
 #Check the misclassification rate
 error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[validSubset]),4)
 error.svm.A 
-# [1] 0.0727
+# [1] 0.0723
 
 #Compare against the misclassification rate for the base model 
 error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
