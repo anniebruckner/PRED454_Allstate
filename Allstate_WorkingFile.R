@@ -1303,6 +1303,38 @@ error.svm.A
 error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
 error.svm.A.base #0.0729
 
+# Fit Metrics
+confusionMatrix(post.valid.svm.A,train.purchase.m$A[validSubset],)
+#Confusion Matrix and Statistics
+
+#Reference
+#Prediction     0     1     2
+#0  4910   224    77
+#1   360 14386   738
+#2    73   281  3203
+
+#Overall Statistics
+
+#Accuracy : 0.9277          
+#95% CI : (0.9244, 0.9309)
+#No Information Rate : 0.614           
+#P-Value [Acc > NIR] : < 2.2e-16       
+
+#Kappa : 0.8652          
+#Mcnemar's Test P-Value : < 2.2e-16       
+
+#Statistics by Class:
+
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9190   0.9661   0.7972
+#Specificity            0.9841   0.8827   0.9825
+#Pos Pred Value         0.9422   0.9291   0.9005
+#Neg Pred Value         0.9773   0.9424   0.9606
+#Prevalence             0.2203   0.6140   0.1657
+#Detection Rate         0.2025   0.5932   0.1321
+#Detection Prevalence   0.2149   0.6385   0.1467
+#Balanced Accuracy      0.9515   0.9244   0.8898
+
 
 
 ##########################################################################
