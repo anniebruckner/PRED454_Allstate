@@ -941,7 +941,7 @@ importance(model.RF.naive.A)
 #homeowner + married_couple + group_size don't appear as important--will leave out for other models
 
 ####################
-#LDA *A* 
+#LDA *A*
 ####################
 set.seed(1)
 
