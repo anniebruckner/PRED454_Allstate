@@ -54,7 +54,7 @@ lapply(list.of.packages, require, character.only = TRUE)
 #####################################
 
 # set to your local directory. We will each have to edit this line of code.
-#path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
+path <- "C:/Users/elfty/Desktop/Sherman/MSPA/P454/Project/" #shermanpath
 #path <- "/Users/paulbertucci/Desktop/MSPA/PRED454_AdvancedModeling/FinalProject/AllState" #paulpath
 path <- "/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate" #anniepath
 setwd("/Users/annie/Desktop/Northwestern/PREDICT_454/Allstate")
@@ -1481,6 +1481,7 @@ knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c("B
 knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c("B")]
 
 summary(knn.testLabels)
+summary(knn.training)
 ### Building classifier 
 knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
 
@@ -1517,8 +1518,6 @@ knnFit <- train(B ~ (lastQuoted_B) + risk_factor_imp + car_age + car_value + cos
 # The final value used for the model was k = 7. 
 
 knnPredict <- predict(knnFit,newdata = train.purchase.m[validSubset,])
-
-
 
 knn.trainLabels <- train.purchase.m.knn[,c('B')]
 knn.testLabels <- train.purchase.m[validSubset,c('B')]
@@ -1605,9 +1604,10 @@ confusionMatrix(post.valid.rf.B,train.purchase.m$B[validSubset],)
 ####################
 set.seed(1)
 
+str(train.purchase.m)
 ptm <- proc.time() # Start the clock!
 
-model.boost.B=gbm(B ~ (lastQuoted_B)+ risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+model.boost.B=gbm(B ~ (lastQuoted_B)+ risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state + C_previous_imp + duration_previous_imp +
                     Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4  ,
                   data=train.purchase.m[trainSubset,],
                   distribution="multinomial",
@@ -1619,6 +1619,12 @@ proc.time() - ptm # Stop the clock
 #RunTime
 #user  system elapsed 
 #151.54    0.47  153.98
+
+#train error rate
+post.train.boost.prob.B <- predict(model.boost.B, train.purchase.m[trainSubset,],type='response',n.trees=1000) 
+post.train.boost.B<-apply(post.train.boost.prob.B, 1, which.max) - 1
+train.boost.B <- round(mean(post.train.boost.B!=train.purchase.m$B[trainSubset]),4)
+train.boost.B 
 
 #relative influence statistics & plot.
 summary(model.boost.B)
@@ -1680,7 +1686,7 @@ dim(train.purchase.m.svm)
 
 #Fit a linear SVM Model
 ptm <- proc.time() # Start the clock!
-svmfit.B=svm(B ~ (lastQuoted_B) + risk_factor + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+svmfit.B=svm(B ~ (lastQuoted_B) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state + C_previous_imp + duration_previous_imp +
                Quoted_B_minus2 + Quoted_B_minus3 + Quoted_B_minus4  ,
              data=train.purchase.m.svm,
              kernel="linear",  
@@ -1695,6 +1701,11 @@ summary(svmfit.B)
 #RunTime
 # user  system elapsed 
 # 156.099   1.407 158.419 
+
+#Train Error Rate
+post.train.svm.B<-predict(svmfit.B,train.purchase.m[trainSubset,])
+train.svm.B <- round(mean(post.train.svm.B!=train.purchase.m$B[trainSubset]),4)
+train.svm.B 
 
 # Predict SVM on validation set
 post.valid.svm.B<-predict(svmfit.B,train.purchase.m[validSubset,])
@@ -1712,7 +1723,7 @@ error.svm.B
 error.svm.B.base <- round(mean(train.purchase.m$lastQuoted_B[validSubset]!=train.purchase.m$B[validSubset]),4)
 error.svm.B.base 
 
-
+confusionMatrix(post.valid.svm.B,train.purchase.m$B[validSubset])
 ##########################################################################
 ## Option *C* Models ##
 ##########################################################################
