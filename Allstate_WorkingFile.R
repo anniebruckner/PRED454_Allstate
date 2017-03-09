@@ -1454,41 +1454,6 @@ confusionMatrix(post.valid.lda.B,train.purchase.m$B[validSubset],)
 ####################
 set.seed(1)
 
-### Use this code to create a sample of the training data to fit a model   #PB
-n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
-# repeatability of results
-knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
-train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
-dim(train.purchase.m.knn)
-
-### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
-n <-dim(train.purchase.m)[1] 
-knn.sample <- sample(n, round(.25*n)) 
-train.purchase.m.knn<-train.purchase.m[knn.sample,] 
-dim(train.purchase.m.knn)
-View(train.purchase.m.knn)
-
-set.seed(1)
-dim(train.purchase.m.knn)
-table(train.purchase.m.knn$part)
-### 24,252 observations | 18,209 train | 6,043 valid
-
-### Define KNN training and test sets
-knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
-knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
-View(knn.training)
-knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c("B")]
-knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c("B")]
-
-summary(knn.testLabels)
-summary(knn.training)
-### Building classifier 
-knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
-
-#knn_pred
-
-CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
-
 #knn second method
 set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
@@ -1497,7 +1462,6 @@ n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1]
 knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
 train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
 dim(train.purchase.m.knn)
-library(class)
 
 ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
 knnFit <- train(B ~ (lastQuoted_B) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
@@ -1529,6 +1493,17 @@ knn_pred
 
 library(gmodels)
 CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+
+#train error rate
+knnPredict_train <- predict(knnFit,newdata = train.purchase.m[trainSubset,])
+train.knn.B <- round(mean(knnPredict_train!=train.purchase.m$B[trainSubset]),4)
+train.knn.B
+
+#validation error rate
+error.knn.B <- round(mean(knnPredict!=train.purchase.m$B[validSubset]),4)
+error.knn.B
+
+confusionMatrix(knnPredict,train.purchase.m$B[validSubset],)
 
 ####################
 # RandomForest *B*
