@@ -969,7 +969,7 @@ table(post.train.lda0.a$class, train.purchase.m$A[trainSubset]) #confusion matri
 #1  1116 43070  1828
 #2   286   844  9927
 
-1-(mean(post.train.lda0.a$class==train.purchase.m$A[trainSubset]))
+(mean(post.train.lda0.a$class!=train.purchase.m$A[trainSubset]))
 #0.07046745
 plot(train.purchase.m$A[trainSubset], post.train.lda0.a$class, col=c("blue","red","yellow","green"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
 
@@ -982,7 +982,7 @@ table(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #confusion matri
 #1   325 14349   710
 #2    96   288  3214
 
-1-(mean(post.valid.lda0.a$class==train.purchase.m$A[validSubset])) #what percent did we predict successfully?
+(mean(post.valid.lda0.a$class!=train.purchase.m$A[validSubset])) #what percent did we predict successfully?
 #0.07285997
 plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
 
@@ -1055,7 +1055,7 @@ table(train.purchase.m.knn$part)
 
 ptm <- proc.time() # Start the clock!
 ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
-knnFit <- train(C ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+knnFit <- train(A ~ (lastQuoted_A) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
                   Quoted_A_minus2 + Quoted_A_minus3 + Quoted_A_minus4 + C_previous_imp + duration_previous_imp
                 , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
 proc.time() - ptm # Stop the clock
@@ -1065,22 +1065,22 @@ knnFit
 
 #24252 samples
 #15 predictor
-#4 classes: '1', '2', '3', '4' 
+#3 classes: '0', '1', '2' 
 
 #Pre-processing: centered (16), scaled (16) 
 #Resampling: Cross-Validated (10 fold, repeated 1 times) 
-#Summary of sample sizes: 21827, 21828, 21827, 21827, 21827, 21826, ... 
+#Summary of sample sizes: 21825, 21827, 21827, 21825, 21827, 21828, ... 
 #Resampling results across tuning parameters:
   
 #  k   Accuracy   Kappa    
-#5  0.6064645  0.4212212
-#7  0.6152891  0.4301390
-#9  0.6235772  0.4390887
-#11  0.6244015  0.4379259
-#13  0.6246077  0.4359995
+#5  0.9255318  0.8608074
+#7  0.9270986  0.8636649
+#9  0.9278821  0.8651100
+#11  0.9280882  0.8655147
+#13  0.9278822  0.8651222
 
 #Accuracy was used to select the optimal model using  the largest value.
-#The final value used for the model was k = 13.
+#The final value used for the model was k = 11. 
 
 knnPredict <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
 knnPredict
@@ -1114,17 +1114,45 @@ CrossTable(x = knn.testLabels, y = knn.fit, prop.chisq=FALSE)
 table(knnPredict, knn.testLabels)
 #knn.testLabels
 #knnPredict    0    1    2
-#1  727  827  300
-#2  151  428   98
-#3  394 2260  559
-#4    6  201   41
+#0 1175   56   21
+#1   79 3592  192
+#2   24   68  785
 
 #Check the misclassification rate
 error.knn.A <- round(mean(knn.valid!=knn.testLabels),4)
 error.knn.A
-# 0.0984
+# 0.0741
 
 confusionMatrix(knn.valid,knn.testLabels)
+#Confusion Matrix and Statistics
+
+#Reference
+#Prediction    0    1    2
+#0 1171   56   20
+#1   83 3592  193
+#2   24   68  785
+
+#Overall Statistics
+
+#Accuracy : 0.9259         
+#95% CI : (0.919, 0.9324)
+#No Information Rate : 0.6202         
+#P-Value [Acc > NIR] : < 2.2e-16      
+
+#Kappa : 0.8604         
+#Mcnemar's Test P-Value : 3.971e-14      
+
+#Statistics by Class:
+
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9163   0.9666   0.7866
+#Specificity            0.9839   0.8787   0.9816
+#Pos Pred Value         0.9391   0.9286   0.8951
+#Neg Pred Value         0.9774   0.9416   0.9584
+#Prevalence             0.2133   0.6202   0.1666
+#Detection Rate         0.1954   0.5995   0.1310
+#Detection Prevalence   0.2081   0.6455   0.1464
+#Balanced Accuracy      0.9501   0.9227   0.8841
 
 ####################
 # RandomForest *A*
