@@ -986,10 +986,36 @@ table(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #confusion matri
 #0.07285997
 plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
 
-confusionMatrix(post.valid.lda0.a,train.purchase.m$A[validSubset],)
-#Error in sort.list(y) : 'x' must be atomic for 'sort.list'
-#Have you called 'sort' on a list?
-table(post.valid.lda0.a,train.purchase.m$A[validSubset])
+confusionMatrix(post.valid.lda0.a$class,train.purchase.m$A[validSubset],)
+#Confusion Matrix and Statistics
+#Reference
+#Prediction     0     1     2
+#0  4922   254    94
+#1   325 14349   710
+#2    96   288  3214
+
+#Overall Statistics
+
+#Accuracy : 0.9271          
+#95% CI : (0.9238, 0.9304)
+#No Information Rate : 0.614           
+#P-Value [Acc > NIR] : < 2.2e-16       
+
+#Kappa : 0.8646          
+#Mcnemar's Test P-Value : < 2.2e-16       
+
+#Statistics by Class:
+
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9212   0.9636   0.7999
+#Specificity            0.9816   0.8894   0.9810
+#Pos Pred Value         0.9340   0.9327   0.8933
+#Neg Pred Value         0.9778   0.9389   0.9611
+#Prevalence             0.2203   0.6140   0.1657
+#Detection Rate         0.2030   0.5917   0.1325
+#Detection Prevalence   0.2173   0.6343   0.1484
+#Balanced Accuracy      0.9514   0.9265   0.8905
+
 
 ####################
 # K-Nearest Neighbors *A*  -- can't get KNN to work
@@ -1247,16 +1273,16 @@ post.train.boost.prob.A <- predict(model.boost.A, train.purchase.m[trainSubset,]
 post.train.boost.A<-apply(post.train.boost.prob.A, 1, which.max)
 
 post.valid.boost.prob.A <- predict(model.boost.A, train.purchase.m[validSubset,],type='response',n.trees=1000) 
-post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)
+post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)-1
 length(post.valid.boost.A)
 head(post.valid.boost.A)
 
 #Create a simple confusion matrix
 table(post.valid.boost.A,train.purchase.m$A[validSubset])
 #post.valid.boost.A     0     1     2
-#1  4996   228    78
-#2   267 14373   728
-#3    80   290  3212
+#0  4996   228    78
+#1   267 14373   728
+#2    80   290  3212
 
 #Compare against the misclassification rate for the base model 
 error.train.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[trainSubset]!=train.purchase.m$A[trainSubset]),4)
@@ -1278,9 +1304,35 @@ error.boost.A.base
 # 0.0729
 
 # Fit Metrics
-confusionMatrix(post.valid.boost.A,train.purchase.m$A[validSubset],)
-#Error in confusionMatrix.default(post.valid.boost.A, train.purchase.m$A[validSubset],  : 
-#The data contain levels not found in the data.
+confusionMatrix(post.valid.boost.A,train.purchase.m$A[validSubset])
+#Confusion Matrix and Statistics
+#Reference
+#Prediction     0     1     2
+#0  4996   228    78
+#1   267 14373   728
+#2    80   290  3212
+
+#Overall Statistics
+
+#Accuracy : 0.9311          
+#95% CI : (0.9278, 0.9343)
+#No Information Rate : 0.614           
+#P-Value [Acc > NIR] : < 2.2e-16       
+
+#Kappa : 0.872           
+#Mcnemar's Test P-Value : < 2.2e-16       
+
+#Statistics by Class:
+
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9351   0.9652   0.7994
+#Specificity            0.9838   0.8937   0.9817
+#Pos Pred Value         0.9423   0.9353   0.8967
+#Neg Pred Value         0.9817   0.9417   0.9610
+#Prevalence             0.2203   0.6140   0.1657
+#Detection Rate         0.2060   0.5927   0.1324
+#Detection Prevalence   0.2186   0.6337   0.1477
+#Balanced Accuracy      0.9594   0.9295   0.8906
 
 #plot relative influence of variables
 summaryBoostA<-summaryBoostA[order(summaryBoostA$rel.inf,decreasing=FALSE),]
