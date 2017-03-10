@@ -2847,48 +2847,104 @@ set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
 n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
 # repeatability of results
+set.seed(1)
 knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
 train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
 dim(train.purchase.m.knn)
+
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+View(train.purchase.m.knn)
+
+train.purchase.m.knn$Quoted_F_minus3 = as.numeric(train.purchase.m.knn$Quoted_F_minus3)
+train.purchase.m.knn$Quoted_F_minus2 = as.numeric(train.purchase.m.knn$Quoted_F_minus2)
+train.purchase.m.knn$Quoted_F_minus4 = as.numeric(train.purchase.m.knn$Quoted_F_minus4)
+train.purchase.m.knn$lastQuoted_F = as.numeric(train.purchase.m.knn$lastQuoted_F)
+train.purchase.m.knn$C_previous_imp = as.numeric(train.purchase.m.knn$C_previous_imp)
+train.purchase.m.knn$married_couple = as.numeric(train.purchase.m.knn$married_couple)
+train.purchase.m.knn$car_value = as.numeric(train.purchase.m.knn$car_value)
+train.purchase.m.knn$homeowner = as.numeric(train.purchase.m.knn$homeowner)
+train.purchase.m.knn$state = as.numeric(train.purchase.m.knn$state)
+train.purchase.m.knn$day = as.numeric(train.purchase.m.knn$day)
+
+set.seed(1)
 library(class)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,209 train | 6,043 valid
 
 ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
 knnFit <- train(F ~ (lastQuoted_F) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                  Quoted_F_minus2 + Quoted_F_minus3 + Quoted_F_minus4  + group_size + homeowner + married_couple
+                  Quoted_F_minus2 + Quoted_F_minus3 + Quoted_F_minus4 + group_size + homeowner + married_couple
                 , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
 
+knnFit
 
-# Resampling results across tuning parameters:
-#  
-#   k   Accuracy   Kappa    
-# 5  0.9002689  0.8553355
-# 7  0.9014785  0.8570107
-# 9  0.9016983  0.8572941
-# 11  0.9003789  0.8553429
-# 13  0.9002689  0.8551259
+#  k   RMSE       Rsquared 
+#   5  0.4171145  0.8063309
+#   7  0.4112254  0.8114590
+#   9  0.4089547  0.8135273
+#  11  0.4075037  0.8149351
+#  13  0.4071391  0.8153405
 # 
-# Accuracy was used to select the optimal model using  the largest value.
-# The final value used for the model was k = 9. 
+#RMSE was used to select the optimal model using  the smallest value.
+#The final value used for the model was k = 13.  
 
-knnPredict <- predict(knnFit,newdata = train.purchase.m[validSubset,])
+knnPredict <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part!="valid",])
+knnPredict
 
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c('lastQuoted_F', 'risk_factor_imp','car_age', 'car_value','cost','age_oldest','age_youngest','day','shopping_pt','state',
+                                                                           'Quoted_F_minus2','Quoted_F_minus3','Quoted_F_minus4','group_size','homeowner','married_couple')]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c('lastQuoted_F', 'risk_factor_imp','car_age', 'car_value','cost','age_oldest','age_youngest','day','shopping_pt','state',
+                                                                       'Quoted_F_minus2','Quoted_F_minus3','Quoted_F_minus4','group_size','homeowner','married_couple')]
 
-knn.trainLabels.F <- train.purchase.m.knn[,c('F')]
-knn.testLabels.F <- train.purchase.m[validSubset,c('F')]
-
-knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
-knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
 View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", 23]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", 23]
 
-summary(knn.testLabels.F)
+colSums(is.na(knn.training))[colSums(is.na(knn.training)) > 0]
+colSums(is.na(knn.test))[colSums(is.na(knn.test)) > 0]
+
+table(knn.trainLabels)
+table(knn.testLabels)
+
 ### Building classifier 
-knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels.F, k=9)
-knn_pred
+knn.fit <- knn(train= knn.training, test= knn.test, cl = knn.trainLabels, k=13, prob=TRUE) #, l=0, prob=TRUE, use.all = TRUE)
+
+knn.fit
+
+knn.valid <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knn.valid
+
+
+plot(knn.fit)
 
 library(gmodels)
-CrossTable(x = knn.testLabels.F, y = knn_pred, prop.chisq=FALSE)
-#Error in CrossTable(x = knn.testLabels.F, y = knn_pred, prop.chisq = FALSE) : 
-#  x and y must have the same length
+CrossTable(x = knn.testLabels, y = knn.fit, prop.chisq=FALSE)
+
+#training
+table(round(knnPredict), knn.trainLabels)
+
+#Check the misclassification rate
+error.knn.F <- round(mean(knnPredict!=knn.trainLabels),4)
+error.knn.F 
+
+confusionMatrix(round(knnPredict),knn.trainLabels)
+# Kappa 0.8901   
+
+#validation
+table(round(knn.valid), knn.testLabels)
+
+#Check the misclassification rate
+error.knn.F <- round(mean(knn.valid!=knn.testLabels),4)
+error.knn.F 
+
+confusionMatrix(round(knn.valid),knn.testLabels)
+# Kappa 0.8897  
 
 ####################
 # RandomForest *F*
