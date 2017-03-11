@@ -223,31 +223,26 @@ apply(train[18:24],2,FUN = table)
 #####Begin Data Description - DT 1/22/17
 #Graphing policy shoppers by state
 
-#load state codes csv file
+#load state codes csv file # Did someone create a csv? I can't find an existing file on Github or Kaggle # Annie
 state_codes <- read.csv(file.choose())
-head(state_codes)
+#head(state_codes)
 
-state_df <- as.data.frame(table(state_codes$state)) #turn state data into DF for manipulating purposes -- AB: this didn't work --  object 'state' not found. (issue from removing attach()?)
-state_df$postal_code <- state_df$state #rename column for easy merging below -- AB: only Var1 and Freq exist in state_df
-colnames(state_df) <- c("state","Freq") # AB: changed Var1 to state
-head(state_df)
+state_df <- as.data.frame(table(train$state)) #turn state data into DF for manipulating purposes
+colnames(state_df)[1] <- "postal_code" #rename column for easy merging below for state_combo
+#head(state_df)
 
 #merge state data frame with frequency counts and postal codes to get state names
-#state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE) # AB: postal code doesn't exist in state_df
-state_combo <- merge(state_codes, state_df, by="state", all=TRUE) # AB: added because postal_code doesn't exist in both dfs
-head(state_combo) # AB: This essentialy added a Freq column to state_codes
+state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE)
+#head(state_combo)
 
 #merge state_combo with state plotting data
-names(state_combo)[names(state_combo)=="state"] <- "region"
+names(state_combo)[names(state_combo)=="state"] <- "region" #renaming to do merge for state_total
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
-# [ SOLVED] AM: changed state.x to state -> # AB: I got this error when I ran the above line of code:
-# Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
-# replacement has 0 rows, data has 59
-state_total <- merge(all_states,state_combo, by="region", all=TRUE)
-# AM: all_state object is missing
-#  Error in merge(all_states, state_combo, by = "region", all = TRUE) : 
-#  object 'all_states' not found
-  #head(state_total)
+
+all_states <- map_data("state") #ggplot2 package, load state graphing df
+
+state_total <- merge(all_states,state_combo, by="region", all=TRUE) #combine state graphing df with frequency data
+#head(state_total)
 
 #construct map graph
 state_total <- state_total[order(state_total$order),]
