@@ -943,6 +943,29 @@ varImpPlot(model.RF.naive.A, main = "Random Forest Model: \n Variable Importance
 importance(model.RF.naive.A)
 #homeowner + married_couple + group_size don't appear as important--will leave out for other models
 
+# Base Model
+ptm <- proc.time() # Start the clock!
+model.A.base <- lda(A ~ (lastQuoted_A),
+                    data = train.purchase.m,
+                    subset = trainSubset)
+proc.time() - ptm # Stop the clock
+#RunTime
+#   user  system elapsed 
+#0.119   0.021   0.142
+
+error.A.base.train <- round(mean(train.purchase.m$lastQuoted_A[trainSubset]!=train.purchase.m$A[trainSubset]),4)
+error.A.base.train 
+#0.0705
+
+error.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+error.A.base
+#0.0729
+
+post.valid.base.A <- predict(object=model.A.base, newdata = train.purchase.m[validSubset,])
+post.valid.base.A
+
+confusionMatrix(post.valid.base.A$class,train.purchase.m$A[validSubset],)
+
 ####################
 #LDA *A*
 ####################
@@ -982,8 +1005,17 @@ table(post.valid.lda0.a$class, train.purchase.m$A[validSubset]) #confusion matri
 #1   325 14349   710
 #2    96   288  3214
 
-(mean(post.valid.lda0.a$class!=train.purchase.m$A[validSubset])) #what percent did we predict successfully?
-#0.07285997
+#Check the misclassification rate
+error.lda.A <- round(mean(post.valid.lda0.a$class!=train.purchase.m$A[validSubset]),4)
+error.lda.A 
+#0.0729
+
+#Compare against the misclassification rate for the base model 
+error.lda.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
+error.lda.A.base 
+# 0.0729
+
+
 plot(train.purchase.m$A[validSubset], post.valid.lda0.a$class, col=c("blue","red","yellow","green"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
 
 confusionMatrix(post.valid.lda0.a$class,train.purchase.m$A[validSubset],)
@@ -1018,7 +1050,7 @@ confusionMatrix(post.valid.lda0.a$class,train.purchase.m$A[validSubset],)
 
 
 ####################
-# K-Nearest Neighbors *A*  -- can't get KNN to work
+# K-Nearest Neighbors *A*
 ####################
 ### Use this code to create a sample of the training data to fit a model   #PB
 n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
@@ -1106,6 +1138,9 @@ knn.fit
 knn.valid <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
 knn.valid
 
+knn.train <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="train",])
+knn.train
+
 plot(knn.fit)
 
 library(gmodels)
@@ -1117,6 +1152,11 @@ table(knnPredict, knn.testLabels)
 #0 1175   56   21
 #1   79 3592  192
 #2   24   68  785
+
+#Check the misclassification rate
+error.knn.train.A <- round(mean(knn.train!=knn.trainLabels),4)
+error.knn.train.A
+# 0.0698
 
 #Check the misclassification rate
 error.knn.A <- round(mean(knn.valid!=knn.testLabels),4)
@@ -1172,6 +1212,8 @@ model.rf.A
 randomForest::importance(model.rf.A)
 randomForest::varImpPlot(model.rf.A)
 
+post.train.rf.A <- predict(model.rf.A, train.purchase.m[trainSubset,]) 
+
 # Predict random forest on validation set
 post.valid.rf.A <- predict(model.rf.A, train.purchase.m[validSubset,]) 
 length(post.valid.rf.A)
@@ -1184,6 +1226,11 @@ table(post.valid.rf.A,train.purchase.m$A[validSubset])
 #              2    92   290  3209
 
 #Check the misclassification rate
+error.train.rf.A <- round(mean(post.train.rf.A!=train.purchase.m$A[trainSubset]),4)
+error.train.rf.A
+#0.0531
+
+#Check the misclassification rate
 error.rf.A <- round(mean(post.valid.rf.A!=train.purchase.m$A[validSubset]),4)
 error.rf.A
 #0.0705
@@ -1192,6 +1239,11 @@ error.rf.A
 error.rf.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
 error.rf.A.base
 #0.0729
+
+#Compare against the misclassification rate for the base model 
+error.A.base <- round(mean(train.purchase.m$lastQuoted_A[trainSubset]!=train.purchase.m$A[trainSubset]),4)
+error.A.base
+#0.0705
 
 # Fit Metrics
 confusionMatrix(post.valid.rf.A,train.purchase.m$A[validSubset],)
@@ -1262,10 +1314,19 @@ summary(model.boost.A)
 #day                                     day  0.002218774
 #summaryBoostA<-summary(model.boost.A)
 
-# Predict ABM on validation set
-post.train.boost.prob.A <- predict(model.boost.A, train.purchase.m[trainSubset,],type='response',n.trees=1000) 
-post.train.boost.A<-apply(post.train.boost.prob.A, 1, which.max)
 
+post.train.boost.prob.A <- predict(model.boost.A, train.purchase.m[trainSubset,],type='response',n.trees=1000) 
+post.train.boost.A<-apply(post.train.boost.prob.A, 1, which.max) - 1
+
+train.boost.A <- round(mean(post.train.boost.A!=train.purchase.m$A[trainSubset]),4)
+train.boost.A 
+#0.0647
+
+#post.train.boost.A <- predict(model.boost.A, train.purchase.m[trainSubset,]) 
+train.error.boost.A <- round(mean(post.train.boost.A!=train.purchase.m$A[trainSubset]),4)
+train.error.boost.A 
+
+# Predict ABM on validation set
 post.valid.boost.prob.A <- predict(model.boost.A, train.purchase.m[validSubset,],type='response',n.trees=1000) 
 post.valid.boost.A<-apply(post.valid.boost.prob.A, 1, which.max)-1
 length(post.valid.boost.A)
@@ -1290,7 +1351,7 @@ train.error.boost.A
 #Check the misclassification rate
 error.boost.A <- round(mean(post.valid.boost.A!=train.purchase.m$A[validSubset]),4)
 error.boost.A
-# 0.9606
+# 0.0689
 
 #Compare against the misclassification rate for the base model 
 error.boost.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
@@ -1392,6 +1453,13 @@ summary(svmfit.A)
 # user  system elapsed 
 # 49.066   0.533  52.545 
 
+
+#Train Error Rate
+post.train.svm.A<-predict(svmfit.A,train.purchase.m[trainSubset,])
+train.svm.A <- round(mean(post.train.svm.A!=train.purchase.m$A[trainSubset]),4)
+train.svm.A 
+#0.0706
+
 # Predict SVM on validation set
 post.valid.svm.A<-predict(svmfit.A,train.purchase.m[validSubset,])
 length(post.valid.svm.A) #24252
@@ -1406,11 +1474,12 @@ table(post.valid.svm.A,train.purchase.m$A[validSubset])
 #Check the misclassification rate
 error.svm.A <- round(mean(post.valid.svm.A!=train.purchase.m$A[validSubset]),4)
 error.svm.A 
-# [1] 0.0723
+#0.0723
 
 #Compare against the misclassification rate for the base model 
 error.svm.A.base <- round(mean(train.purchase.m$lastQuoted_A[validSubset]!=train.purchase.m$A[validSubset]),4)
-error.svm.A.base #0.0729
+error.svm.A.base
+#0.0729
 
 # Fit Metrics
 confusionMatrix(post.valid.svm.A,train.purchase.m$A[validSubset],)
