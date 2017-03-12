@@ -713,8 +713,9 @@ model.lda3.g <- lda(G ~ (risk_factor + car_age + car_value + cost + age_oldest +
 
 
 ####################
-# K-Nearest Neighbors -- 2/4/17 FP
+# K-Nearest Neighbors -- 2/4/17 FP --- Edited AM 3/12/17
 ####################
+set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
 n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
 # repeatability of results
@@ -729,27 +730,80 @@ train.purchase.m.knn<-train.purchase.m[knn.sample,]
 dim(train.purchase.m.knn)
 View(train.purchase.m.knn)
 
+train.purchase.m.knn$Quoted_G_minus3 = as.numeric(train.purchase.m.knn$Quoted_G_minus3)
+train.purchase.m.knn$Quoted_G_minus2 = as.numeric(train.purchase.m.knn$Quoted_G_minus2)
+train.purchase.m.knn$Quoted_G_minus4 = as.numeric(train.purchase.m.knn$Quoted_G_minus4)
+train.purchase.m.knn$lastQuoted_G = as.numeric(train.purchase.m.knn$lastQuoted_G)
+train.purchase.m.knn$C_previous_imp = as.numeric(train.purchase.m.knn$C_previous_imp)
+train.purchase.m.knn$married_couple = as.numeric(train.purchase.m.knn$married_couple)
+train.purchase.m.knn$car_value = as.numeric(train.purchase.m.knn$car_value)
+train.purchase.m.knn$homeowner = as.numeric(train.purchase.m.knn$homeowner)
+train.purchase.m.knn$state = as.numeric(train.purchase.m.knn$state)
+train.purchase.m.knn$day = as.numeric(train.purchase.m.knn$day)
+
 set.seed(1)
 library(class)
 dim(train.purchase.m.knn)
 table(train.purchase.m.knn$part)
-### 24,252 observations | 18,209 train | 6,043 valid
+### 24,252 observations | 18,221 train | 6,031 valid
+
+ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+knnFit <- train(G ~ (lastQuoted_G) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4 + group_size + homeowner + married_couple
+                , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
+
+knnFit
+
+# k   Accuracy   Kappa    
+# 5  0.8256630  0.7467639
+# 7  0.8283022  0.7504890
+# 9  0.8306936  0.7538245
+# 11  0.8296217  0.7520257
+# 13  0.8296217  0.7519470
+# 
+# Accuracy was used to select the optimal model using  the largest value.
+# The final value used for the model was k = 9. 
+
+knnPredict <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knnPredict
 
 ### Define KNN training and test sets
-knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
-knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(2,4,6,8,9,10,11,13,14,15,25,26,58,59,60,61)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(2,4,6,8,9,10,11,13,14,15,25,26,58,59,60,61)]
 View(knn.training)
 knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", 24]
 knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", 24]
 
-summary(knn.testLabels)
-### Building classifier 
-knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+colSums(is.na(knn.training))[colSums(is.na(knn.training)) > 0]
+colSums(is.na(knn.test))[colSums(is.na(knn.test)) > 0]
 
-knn_pred
+table(knn.trainLabels)
+table(knn.testLabels)
+
+### Building classifier 
+knn.fit <- knn(train= knn.training, test= knn.test, cl = knn.trainLabels, k=3, prob=TRUE) #, l=0, prob=TRUE, use.all = TRUE)
+
+knn.fit
+
+knn.valid <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knn.valid
+
+
+plot(knn.fit)
 
 library(gmodels)
-CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+CrossTable(x = knn.testLabels, y = knn.fit, prop.chisq=FALSE)
+
+table(knnPredict, knn.testLabels)
+
+#Check the misclassification rate
+error.knn.C <- round(mean(knn.valid!=knn.testLabels),4)
+error.knn.C 
+# 0.1560
+
+
+confusionMatrix(knn.valid,knn.testLabels)
+# Kappa 0.7729    
 
 ####################
 # RandomForest G
