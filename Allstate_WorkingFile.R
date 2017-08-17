@@ -223,31 +223,26 @@ apply(train[18:24],2,FUN = table)
 #####Begin Data Description - DT 1/22/17
 #Graphing policy shoppers by state
 
-#load state codes csv file
+#load state codes csv file # Did someone create a csv? I can't find an existing file on Github or Kaggle # Annie
 state_codes <- read.csv(file.choose())
-head(state_codes)
+#head(state_codes)
 
-state_df <- as.data.frame(table(state_codes$state)) #turn state data into DF for manipulating purposes -- AB: this didn't work --  object 'state' not found. (issue from removing attach()?)
-state_df$postal_code <- state_df$state #rename column for easy merging below -- AB: only Var1 and Freq exist in state_df
-colnames(state_df) <- c("state","Freq") # AB: changed Var1 to state
-head(state_df)
+state_df <- as.data.frame(table(train$state)) #turn state data into DF for manipulating purposes
+colnames(state_df)[1] <- "postal_code" #rename column for easy merging below for state_combo
+#head(state_df)
 
 #merge state data frame with frequency counts and postal codes to get state names
-#state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE) # AB: postal code doesn't exist in state_df
-state_combo <- merge(state_codes, state_df, by="state", all=TRUE) # AB: added because postal_code doesn't exist in both dfs
-head(state_combo) # AB: This essentialy added a Freq column to state_codes
+state_combo <- merge(state_codes, state_df, by="postal_code", all=TRUE)
+#head(state_combo)
 
 #merge state_combo with state plotting data
-names(state_combo)[names(state_combo)=="state"] <- "region"
+names(state_combo)[names(state_combo)=="state"] <- "region" #renaming to do merge for state_total
 state_combo$region<-tolower(state_combo$region) #done for merging on region to work
-# [ SOLVED] AM: changed state.x to state -> # AB: I got this error when I ran the above line of code:
-# Error in `$<-.data.frame`(`*tmp*`, "region", value = character(0)) : 
-# replacement has 0 rows, data has 59
-state_total <- merge(all_states,state_combo, by="region", all=TRUE)
-# AM: all_state object is missing
-#  Error in merge(all_states, state_combo, by = "region", all = TRUE) : 
-#  object 'all_states' not found
-  #head(state_total)
+
+all_states <- map_data("state") #ggplot2 package, load state graphing df
+
+state_total <- merge(all_states,state_combo, by="region", all=TRUE) #combine state graphing df with frequency data
+#head(state_total)
 
 #construct map graph
 state_total <- state_total[order(state_total$order),]
@@ -718,8 +713,9 @@ model.lda3.g <- lda(G ~ (risk_factor + car_age + car_value + cost + age_oldest +
 
 
 ####################
-# K-Nearest Neighbors -- 2/4/17 FP
+# K-Nearest Neighbors -- 2/4/17 FP --- Edited AM 3/12/17
 ####################
+set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
 n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
 # repeatability of results
@@ -734,27 +730,80 @@ train.purchase.m.knn<-train.purchase.m[knn.sample,]
 dim(train.purchase.m.knn)
 View(train.purchase.m.knn)
 
+train.purchase.m.knn$Quoted_G_minus3 = as.numeric(train.purchase.m.knn$Quoted_G_minus3)
+train.purchase.m.knn$Quoted_G_minus2 = as.numeric(train.purchase.m.knn$Quoted_G_minus2)
+train.purchase.m.knn$Quoted_G_minus4 = as.numeric(train.purchase.m.knn$Quoted_G_minus4)
+train.purchase.m.knn$lastQuoted_G = as.numeric(train.purchase.m.knn$lastQuoted_G)
+train.purchase.m.knn$C_previous_imp = as.numeric(train.purchase.m.knn$C_previous_imp)
+train.purchase.m.knn$married_couple = as.numeric(train.purchase.m.knn$married_couple)
+train.purchase.m.knn$car_value = as.numeric(train.purchase.m.knn$car_value)
+train.purchase.m.knn$homeowner = as.numeric(train.purchase.m.knn$homeowner)
+train.purchase.m.knn$state = as.numeric(train.purchase.m.knn$state)
+train.purchase.m.knn$day = as.numeric(train.purchase.m.knn$day)
+
 set.seed(1)
 library(class)
 dim(train.purchase.m.knn)
 table(train.purchase.m.knn$part)
-### 24,252 observations | 18,209 train | 6,043 valid
+### 24,252 observations | 18,221 train | 6,031 valid
+
+ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+knnFit <- train(G ~ (lastQuoted_G) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_G_minus2 + Quoted_G_minus3 + Quoted_G_minus4 + group_size + homeowner + married_couple
+                , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
+
+knnFit
+
+# k   Accuracy   Kappa    
+# 5  0.8256630  0.7467639
+# 7  0.8283022  0.7504890
+# 9  0.8306936  0.7538245
+# 11  0.8296217  0.7520257
+# 13  0.8296217  0.7519470
+# 
+# Accuracy was used to select the optimal model using  the largest value.
+# The final value used for the model was k = 9. 
+
+knnPredict <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knnPredict
 
 ### Define KNN training and test sets
-knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
-knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(2,4,6,8,9,10,11,13,14,15,25,26,58,59,60,61)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(2,4,6,8,9,10,11,13,14,15,25,26,58,59,60,61)]
 View(knn.training)
 knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", 24]
 knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", 24]
 
-summary(knn.testLabels)
-### Building classifier 
-knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels, k=3)
+colSums(is.na(knn.training))[colSums(is.na(knn.training)) > 0]
+colSums(is.na(knn.test))[colSums(is.na(knn.test)) > 0]
 
-knn_pred
+table(knn.trainLabels)
+table(knn.testLabels)
+
+### Building classifier 
+knn.fit <- knn(train= knn.training, test= knn.test, cl = knn.trainLabels, k=3, prob=TRUE) #, l=0, prob=TRUE, use.all = TRUE)
+
+knn.fit
+
+knn.valid <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knn.valid
+
+
+plot(knn.fit)
 
 library(gmodels)
-CrossTable(x = knn.testLabels, y = knn_pred, prop.chisq=FALSE)
+CrossTable(x = knn.testLabels, y = knn.fit, prop.chisq=FALSE)
+
+table(knnPredict, knn.testLabels)
+
+#Check the misclassification rate
+error.knn.C <- round(mean(knn.valid!=knn.testLabels),4)
+error.knn.C 
+# 0.1560
+
+
+confusionMatrix(knn.valid,knn.testLabels)
+# Kappa 0.7729    
 
 ####################
 # RandomForest G
@@ -2580,8 +2629,22 @@ confusionMatrix(post.valid.svm.D,train.purchase.m$D[validSubset])
 ## Option *E* Models ##
 ##########################################################################
 
+# Create naive RF model to select predictors for rest of models
+ptm <- proc.time() # Start the clock!
+set.seed(1)
+model.RF.naive.E <- randomForest(E ~ (lastQuoted_E) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                                   Quoted_E_minus2 + Quoted_E_minus3 + Quoted_E_minus4 + homeowner + married_couple + group_size + C_previous_imp + duration_previous_imp,
+                                 data = train.purchase.m, ntree =500)
+proc.time() - ptm # Stop the clock
+# user  system elapsed 
+# 226.74    3.32  250.17 
+
+varImpPlot(model.RF.naive.E, main = "Random Forest Model: \n Variable Importance")
+importance(model.RF.naive.E)
+#homeowner + married_couple + group_size don't appear as important--will leave out for other models
+
 ####################
-#LDA *A*
+#LDA *E*
 ####################
 set.seed(1)
 
@@ -2594,19 +2657,18 @@ model.lda0.e <- lda(E ~ (lastQuoted_E) + risk_factor_imp + car_age + car_value +
                     subset = trainSubset)
 proc.time() - ptm # Stop the clock
 #RunTime
-#   user  system elapsed 
-#   2.76   0.17   3.82
+# user  system elapsed 
+# 2.42    0.45    4.68 
 
 #classification accuracy for training data
 post.train.lda0.e <- predict(object=model.lda0.e, newdata = train.purchase.m[trainSubset,])
 plot(model.lda0.e, col = as.integer(train.purchase.m$E[-validSubset]), dimen = 2) #scatterplot with colors
 table(post.train.lda0.e$class, train.purchase.m$E[trainSubset]) #confusion matrix
-    #0     #1     
-#0 37213   2681
-#1  1866   30997
+# 0     1
+# 0 37213  2681
+# 1  1866 30997
 
-
-1-(mean(post.train.lda0.e$class==train.purchase.m$E[trainSubset]))
+(mean(post.train.lda0.e$class!=train.purchase.m$E[trainSubset]))
 #0.0624957
 plot(train.purchase.m$E[trainSubset], post.train.lda0.e$class, col=c("blue","orange"),main ="Training Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict trainSubset?
 
@@ -2614,19 +2676,177 @@ plot(train.purchase.m$E[trainSubset], post.train.lda0.e$class, col=c("blue","ora
 post.valid.lda0.e <- predict(object=model.lda0.e, newdata = train.purchase.m[validSubset,])
 plot(model.lda0.e, col = as.integer(train.purchase.m$E[validSubset]), dimen = 2) #scatterplot with colors
 table(post.valid.lda0.e$class, train.purchase.m$E[validSubset]) #confusion matrix
-     #0     #1     
-#0  12433   900
-#1    620   10299
+# 0     1
+# 0 12433   900
+# 1   620 10299
 
-1-(mean(post.valid.lda0.e$class==train.purchase.m$E[validSubset])) #what percent did we predict successfully?
-# 0.06267524
+(mean(post.valid.lda0.e$class!=train.purchase.m$E[validSubset])) #what percent did we predict successfully?
+#0.06267524
 plot(train.purchase.m$E[validSubset], post.valid.lda0.e$class, col=c("blue","orange"),main ="Validation Set", xlab = "Actual Choice", ylab="Predicted Choice") #how well did we predict validSubset?
 
-confusionMatrix(post.valid.lda0.e,train.purchase.m$E[validSubset],)
-#Error in sort.list(y) : 'x' must be atomic for 'sort.list'
-#Have you called 'sort' on a list?
-table(post.valid.lda0.e,train.purchase.m$E[validSubset])
+confusionMatrix(post.valid.lda0.e$class,train.purchase.m$E[validSubset],)
+# Confusion Matrix and Statistics
+# 
+# Reference
+# Prediction     0     1
+# 0 12433   900
+# 1   620 10299
+# 
+# Accuracy : 0.9373            
+# 95% CI : (0.9342, 0.9403)  
+# No Information Rate : 0.5382            
+# P-Value [Acc > NIR] : < 2.2e-16         
+# 
+# Kappa : 0.8737            
+# Mcnemar's Test P-Value : 0.0000000000008294
+# 
+# Sensitivity : 0.9525            
+# Specificity : 0.9196            
+# Pos Pred Value : 0.9325            
+# Neg Pred Value : 0.9432            
+# Prevalence : 0.5382            
+# Detection Rate : 0.5127            
+# Detection Prevalence : 0.5498            
+# Balanced Accuracy : 0.9361            
+# 
+# 'Positive' Class : 0  
 
+
+####################
+# K-Nearest Neighbors *E*  -- can't get KNN to work
+####################
+### Use this code to create a sample of the training data to fit a model   #PB
+n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
+# repeatability of results
+set.seed(1)
+knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
+train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
+dim(train.purchase.m.knn)
+
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+set.seed(1)
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+#View(train.purchase.m.knn)
+
+train.purchase.m.knn$Quoted_E_minus3 = as.numeric(train.purchase.m.knn$Quoted_E_minus3)
+train.purchase.m.knn$Quoted_E_minus2 = as.numeric(train.purchase.m.knn$Quoted_E_minus2)
+train.purchase.m.knn$Quoted_E_minus4 = as.numeric(train.purchase.m.knn$Quoted_E_minus4)
+train.purchase.m.knn$lastQuoted_C = as.numeric(train.purchase.m.knn$lastQuoted_E)
+train.purchase.m.knn$C_previous_imp = as.numeric(train.purchase.m.knn$C_previous_imp)
+train.purchase.m.knn$married_couple = as.numeric(train.purchase.m.knn$married_couple)
+train.purchase.m.knn$car_value = as.numeric(train.purchase.m.knn$car_value)
+train.purchase.m.knn$homeowner = as.numeric(train.purchase.m.knn$homeowner)
+train.purchase.m.knn$state = as.numeric(train.purchase.m.knn$state)
+train.purchase.m.knn$day = as.numeric(train.purchase.m.knn$day)
+
+set.seed(1)
+library(class)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,260 train | 5,992 valid
+
+ptm <- proc.time() # Start the clock!
+ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+knnFit <- train(E ~ (lastQuoted_E) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
+                  Quoted_E_minus2 + Quoted_E_minus3 + Quoted_E_minus4 + C_previous_imp + duration_previous_imp
+                , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
+proc.time() - ptm # Stop the clock
+
+knnFit
+# k-Nearest Neighbors 
+# 
+# 24252 samples
+# 15 predictor
+# 2 classes: '0', '1' 
+# 
+# Pre-processing: centered (15), scaled (15) 
+# Resampling: Cross-Validated (10 fold, repeated 1 times) 
+# Summary of sample sizes: 21828, 21827, 21826, 21826, 21826, 21827, ... 
+# Resampling results across tuning parameters:
+#   
+#   k   Accuracy   Kappa    
+# 5  0.9301493  0.8593003
+# 7  0.9310565  0.8611145
+# 9  0.9317162  0.8624164
+# 11  0.9310977  0.8611740
+# 13  0.9308916  0.8607528
+# 
+# Accuracy was used to select the optimal model using  the largest value.
+# The final value used for the model was k = 9. 
+
+knnPredict <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knnPredict
+
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(2,4,6,8,9,10,11,13,14,15,25,26,27,28,34,35,36,37)]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(2,4,6,8,9,10,11,13,14,15,25,26,27,28,34,35,36,37)]
+#View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", 18]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", 18]
+
+colSums(is.na(knn.training))[colSums(is.na(knn.training)) > 0]
+colSums(is.na(knn.test))[colSums(is.na(knn.test)) > 0]
+
+table(knn.trainLabels)
+table(knn.testLabels)
+
+### Building classifier 
+knn.fit <- knn(train= knn.training, test= knn.test, cl = knn.trainLabels, k=11, prob=TRUE) #, l=0, prob=TRUE, use.all = TRUE)
+
+knn.fit
+
+knn.valid <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knn.valid
+
+plot(knn.fit)
+
+library(gmodels)
+CrossTable(x = knn.testLabels, y = knn.fit, prop.chisq=FALSE)
+
+table(knnPredict, knn.testLabels)
+# knn.testLabels
+# knnPredict    0    1    2
+# 0 1220 1594  504
+# 1   58 2122  494
+
+#Check the misclassification rate
+error.knn.E <- round(mean(knn.valid!=knn.testLabels),4)
+error.knn.E
+# 0.0741
+
+confusionMatrix(knn.valid,knn.testLabels)
+#Confusion Matrix and Statistics
+
+#Reference
+#Prediction    0    1    2
+#0 1171   56   20
+#1   83 3592  193
+#2   24   68  785
+
+#Overall Statistics
+
+#Accuracy : 0.9259         
+#95% CI : (0.919, 0.9324)
+#No Information Rate : 0.6202         
+#P-Value [Acc > NIR] : < 2.2e-16      
+
+#Kappa : 0.8604         
+#Mcnemar's Test P-Value : 3.971e-14      
+
+#Statistics by Class:
+
+#Class: 0 Class: 1 Class: 2
+#Sensitivity            0.9163   0.9666   0.7866
+#Specificity            0.9839   0.8787   0.9816
+#Pos Pred Value         0.9391   0.9286   0.8951
+#Neg Pred Value         0.9774   0.9416   0.9584
+#Prevalence             0.2133   0.6202   0.1666
+#Detection Rate         0.1954   0.5995   0.1310
+#Detection Prevalence   0.2081   0.6455   0.1464
+#Balanced Accuracy      0.9501   0.9227   0.8841
 
 ####################
 # RandomForest *E*
@@ -2637,13 +2857,11 @@ model.rf.E <- randomForest(E ~ (lastQuoted_E) + risk_factor_imp + car_age + car_
                              Quoted_E_minus2 + Quoted_E_minus3 + Quoted_E_minus4 + C_previous_imp + duration_previous_imp,
                            data=train.purchase.m,subset = trainSubset,ntrees=500) 
 
-proc.time() - ptm 
-# Stop the clock
-#   user  system elapsed 
-#    .95     .28     2.56 
+proc.time() - ptm # Stop the clock
+# user  system elapsed 
+# 126.42    2.05  144.27
 
 #model summary,Var importance stats and plot
-#Error: cannot allocate vector of size 555.1 Mb
 model.rf.E
 randomForest::importance(model.rf.E)
 randomForest::varImpPlot(model.rf.E)
@@ -2654,34 +2872,51 @@ length(post.valid.rf.E)
 
 #Create a simple confusion matrix
 table(post.valid.rf.E,train.purchase.m$E[validSubset])
-#post.valid.rf.E
-#                   0     1  
-#              0    .     .  
-#              1    .     .  
-
+# post.valid.rf.E     0     1
+# 0 12509  1088
+# 1   544 10111
 
 #Check the misclassification rate
 error.rf.E <- round(mean(post.valid.rf.E!=train.purchase.m$E[validSubset]),4)
 error.rf.E
-#.
+#0.0673
 
 #Compare against the misclassification rate for the base model 
 error.rf.E.base <- round(mean(train.purchase.m$lastQuoted_E[validSubset]!=train.purchase.m$E[validSubset]),4)
 error.rf.E.base
-#.
+#0.0627
 
 # Fit Metrics
 confusionMatrix(post.valid.rf.E,train.purchase.m$E[validSubset],)
-#Confusion Matrix and Statistics
-#Reference
-#Prediction   
-#                   0     1  
-#              0    .     .  
-#              1    .     .  
+# Confusion Matrix and Statistics
+# 
+# Reference
+# Prediction     0     1
+# 0 12509  1088
+# 1   544 10111
+# 
+# Accuracy : 0.9327          
+# 95% CI : (0.9295, 0.9358)
+# No Information Rate : 0.5382          
+# P-Value [Acc > NIR] : < 2.2e-16       
+# 
+# Kappa : 0.8642          
+# Mcnemar's Test P-Value : < 2.2e-16       
+#                                           
+#             Sensitivity : 0.9583          
+#             Specificity : 0.9028          
+#          Pos Pred Value : 0.9200          
+#          Neg Pred Value : 0.9489          
+#              Prevalence : 0.5382          
+#          Detection Rate : 0.5158          
+#    Detection Prevalence : 0.5607          
+#       Balanced Accuracy : 0.9306          
+#                                           
+#        'Positive' Class : 0  
 
 
 ####################
-# Boosting Model *A*
+# Boosting Model *E*
 ####################
 
 ptm <- proc.time() # Start the clock!
@@ -2696,43 +2931,42 @@ model.boost.E=gbm(E ~ (lastQuoted_E) + risk_factor_imp + car_age + car_value + c
 
 proc.time() - ptm # Stop the clock
 #user  system elapsed 
-#246.57   4.55 2472.87
+# 208.92    1.59  288.30 
 
 #relative influence statistics & plot.
 summary(model.boost.E)
 #var      rel.inf
-#lastQuoted_E                   lastQuoted_E 95.343587144
-#Quoted_E_minus2             Quoted_E_minus2  1.388448356
-#cost                                   cost  0.824369609
-#car_age                             car_age  0.763640385
-#state                                 state  0.445824881
-#Quoted_E_minus3             Quoted_E_minus3  0.412180789
-#Quoted_E_minus4             Quoted_E_minus4  0.244774084
-#age_youngest                   age_youngest  0.240936151
-#age_oldest                       age_oldest  0.140383532
-#shopping_pt                     shopping_pt  0.081571668
-#C_previous_imp               C_previous_imp  0.034988286
-#risk_factor_imp             risk_factor_imp  0.031847367
-#car_value                         car_value  0.022677371
-#duration_previous_imp duration_previous_imp  0.018561585
-#day                                     day  0.006208792
-#summaryBoostA<-summary(model.boost.E)
+# lastQuoted_E                   lastQuoted_E 95.343839429
+# Quoted_E_minus2             Quoted_E_minus2  1.388196071
+# cost                                   cost  0.824369609
+# car_age                             car_age  0.763640385
+# state                                 state  0.445824881
+# Quoted_E_minus3             Quoted_E_minus3  0.412431425
+# Quoted_E_minus4             Quoted_E_minus4  0.242647120
+# age_youngest                   age_youngest  0.240936151
+# age_oldest                       age_oldest  0.140383532
+# shopping_pt                     shopping_pt  0.083447996
+# C_previous_imp               C_previous_imp  0.034988286
+# risk_factor_imp             risk_factor_imp  0.031847367
+# car_value                         car_value  0.022677371
+# duration_previous_imp duration_previous_imp  0.018561585
+# day                                     day  0.006208792
+#summaryBoostE<-summary(model.boost.E)
 
 # Predict ABM on validation set
 post.train.boost.prob.E <- predict(model.boost.E, train.purchase.m[trainSubset,],type='response',n.trees=1000) 
 post.train.boost.E<-apply(post.train.boost.prob.E, 1, which.max)
 
 post.valid.boost.prob.E <- predict(model.boost.E, train.purchase.m[validSubset,],type='response',n.trees=1000) 
-post.valid.boost.E<-apply(post.valid.boost.prob.E, 1, which.max)
+post.valid.boost.E<-apply(post.valid.boost.prob.E, 1, which.max)-1
 length(post.valid.boost.E)
 head(post.valid.boost.E)
 
 #Create a simple confusion matrix
 table(post.valid.boost.E,train.purchase.m$E[validSubset])
-#post.valid.boost.A     0     1     
-#1  12457     911
-#2  596       10288
-
+# post.valid.boost.E     0     1
+# 0 12457   911
+# 1   596 10288
 
 #Compare against the misclassification rate for the base model 
 error.train.boost.E.base <- round(mean(train.purchase.m$lastQuoted_E[trainSubset]!=train.purchase.m$E[trainSubset]),4)
@@ -2746,7 +2980,7 @@ train.error.boost.E
 #Check the misclassification rate
 error.boost.E <- round(mean(post.valid.boost.E!=train.purchase.m$E[validSubset]),4)
 error.boost.E
-# 0.9624
+# 0.0621
 
 #Compare against the misclassification rate for the base model 
 error.boost.E.base <- round(mean(train.purchase.m$lastQuoted_E[validSubset]!=train.purchase.m$E[validSubset]),4)
@@ -2754,18 +2988,42 @@ error.boost.E.base
 # 0.0627
 
 # Fit Metrics
-confusionMatrix(post.valid.boost.E,train.purchase.m$E[validSubset],)
-#Error in confusionMatrix.default(post.valid.boost.A, train.purchase.m$A[validSubset],  : 
-#The data contain levels not found in the data.
+# confusionMatrix(post.valid.boost.E,train.purchase.m$E[validSubset])
+# Confusion Matrix and Statistics
+# 
+# Reference
+# Prediction     0     1
+# 0 12457   911
+# 1   596 10288
+# 
+# Accuracy : 0.9379          
+# 95% CI : (0.9347, 0.9409)
+# No Information Rate : 0.5382          
+# P-Value [Acc > NIR] : < 2.2e-16       
+# 
+# Kappa : 0.8747          
+# Mcnemar's Test P-Value : 6.036e-16       
+#                                           
+#             Sensitivity : 0.9543          
+#             Specificity : 0.9187          
+#          Pos Pred Value : 0.9319          
+#          Neg Pred Value : 0.9452          
+#              Prevalence : 0.5382          
+#          Detection Rate : 0.5136          
+#    Detection Prevalence : 0.5512          
+#       Balanced Accuracy : 0.9365          
+#                                           
+#        'Positive' Class : 0               
+                             
 
 #plot relative influence of variables
-summaryBoostE <- summaryBoostE[order(summaryBoostE$rel.inf,decreasing=FALSE),]
+summaryBoostE<-summaryBoostE[order(summaryBoostE$rel.inf,decreasing=FALSE),]
 par(mar=c(3,10,3,3))
 barplot(t(summaryBoostE$rel.inf),names.arg = summaryBoostE$var ,las=2,col="darkblue",main = "Relative Influence",horiz=TRUE)
 
 
 ###################
-# SVM *E*
+# SVM *A*
 ###################
 set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
@@ -2789,22 +3047,33 @@ svmfit.E=svm(E ~ (lastQuoted_E) + risk_factor_imp + car_age + car_value + cost +
 proc.time() - ptm # Stop the clock
 
 #Summary statitics
-#summary(svmfit.E)
-#Parameters:
-#  SVM-Type:  C-classification 
-#SVM-Kernel:  linear 
-#cost:  1 
-#gamma:  0.01 
+summary(svmfit.E)
+# svm(formula = E ~ (lastQuoted_E) + risk_factor_imp + car_age + car_value + 
+#       cost + age_oldest + age_youngest + day + shopping_pt + state + Quoted_E_minus2 + 
+#       Quoted_E_minus3 + Quoted_E_minus4 + C_previous_imp + duration_previous_imp, 
+#     data = train.purchase.m.svm, kernel = "linear", gamma = 0.01, cost = 1, 
+#     probability = TRUE)
+# 
+# 
+# Parameters:
+#   SVM-Type:  C-classification 
+# SVM-Kernel:  linear 
+# cost:  1 
+# gamma:  0.01 
+# 
+# Number of Support Vectors:  3427
+# 
+# ( 1633 1794 )
+# 
+# 
+# Number of Classes:  2 
+# 
+# Levels: 
+#   0 1
 
-#Number of Support Vectors:  3427
-
-#( 1633 1794 )
-
-
-#Number of Classes:  2 
-
-#Levels: 
-#  0 1
+#RunTime
+# user  system elapsed 
+# 65.39    0.28   97.41 
 
 # Predict SVM on validation set
 post.valid.svm.E<-predict(svmfit.E,train.purchase.m[validSubset,])
@@ -2812,10 +3081,9 @@ length(post.valid.svm.E) #24252
 
 #Create a simple confusion matrix
 table(post.valid.svm.E,train.purchase.m$E[validSubset])
-#post.valid.svm.A     0     1     
-#               0  12433   900   
-#               1   620    10299   
-
+# post.valid.svm.E     0     1
+# 0 12433   900
+# 1   620 10299
 
 #Check the misclassification rate
 error.svm.E <- round(mean(post.valid.svm.E!=train.purchase.m$E[validSubset]),4)
@@ -2828,31 +3096,32 @@ error.svm.E.base #0.0627
 
 # Fit Metrics
 confusionMatrix(post.valid.svm.E,train.purchase.m$E[validSubset],)
-#Confusion Matrix and Statistics
+# Confusion Matrix and Statistics
+# 
+# Reference
+# Prediction     0     1
+# 0 12433   900
+# 1   620 10299
+# 
+# Accuracy : 0.9373            
+# 95% CI : (0.9342, 0.9403)  
+# No Information Rate : 0.5382            
+# P-Value [Acc > NIR] : < 2.2e-16         
+# 
+# Kappa : 0.8737            
+# Mcnemar's Test P-Value : 0.0000000000008294
+#                                             
+#             Sensitivity : 0.9525            
+#             Specificity : 0.9196            
+#          Pos Pred Value : 0.9325            
+#          Neg Pred Value : 0.9432            
+#              Prevalence : 0.5382            
+#          Detection Rate : 0.5127            
+#    Detection Prevalence : 0.5498            
+#       Balanced Accuracy : 0.9361            
+#                                             
+#        'Positive' Class : 0    
 
-#Reference
-#Prediction     0     1
-#0 12433   900
-#1   620 10299
-
-#Accuracy : 0.9373          
-#95% CI : (0.9342, 0.9403)
-#No Information Rate : 0.5382          
-#P-Value [Acc > NIR] : < 2.2e-16       
-
-#Kappa : 0.8737          
-#Mcnemar's Test P-Value : 8.294e-13       
-
-#Sensitivity : 0.9525          
-#Specificity : 0.9196          
-#Pos Pred Value : 0.9325          
-#Neg Pred Value : 0.9432          
-#Prevalence : 0.5382          
-#Detection Rate : 0.5127          
-#Detection Prevalence : 0.5498          
-#Balanced Accuracy : 0.9361          
-
-#'Positive' Class : 0      
 
 
 
@@ -2916,48 +3185,104 @@ set.seed(1)
 ### Use this code to create a sample of the training data to fit a model   #PB
 n <-dim(train.purchase.m[train.purchase.m$part=="train",])[1] 
 # repeatability of results
+set.seed(1)
 knn.sample <- sample(n, round(.25*n)) # randomly sample 25% test
 train.purchase.m.knn<-train.purchase.m[train.purchase.m$part=="train",][knn.sample,] 
 dim(train.purchase.m.knn)
+
+### KNN SAMPLING CODE (need 'train' and 'valid' in part column)   #FP
+n <-dim(train.purchase.m)[1] 
+knn.sample <- sample(n, round(.25*n)) 
+train.purchase.m.knn<-train.purchase.m[knn.sample,] 
+dim(train.purchase.m.knn)
+View(train.purchase.m.knn)
+
+train.purchase.m.knn$Quoted_F_minus3 = as.numeric(train.purchase.m.knn$Quoted_F_minus3)
+train.purchase.m.knn$Quoted_F_minus2 = as.numeric(train.purchase.m.knn$Quoted_F_minus2)
+train.purchase.m.knn$Quoted_F_minus4 = as.numeric(train.purchase.m.knn$Quoted_F_minus4)
+train.purchase.m.knn$lastQuoted_F = as.numeric(train.purchase.m.knn$lastQuoted_F)
+train.purchase.m.knn$C_previous_imp = as.numeric(train.purchase.m.knn$C_previous_imp)
+train.purchase.m.knn$married_couple = as.numeric(train.purchase.m.knn$married_couple)
+train.purchase.m.knn$car_value = as.numeric(train.purchase.m.knn$car_value)
+train.purchase.m.knn$homeowner = as.numeric(train.purchase.m.knn$homeowner)
+train.purchase.m.knn$state = as.numeric(train.purchase.m.knn$state)
+train.purchase.m.knn$day = as.numeric(train.purchase.m.knn$day)
+
+set.seed(1)
 library(class)
+dim(train.purchase.m.knn)
+table(train.purchase.m.knn$part)
+### 24,252 observations | 18,209 train | 6,043 valid
 
 ctrl <- trainControl(method="repeatedcv",repeats = 1) #,classProbs=TRUE,summaryFunction = twoClassSummary)
 knnFit <- train(F ~ (lastQuoted_F) + risk_factor_imp + car_age + car_value + cost + age_oldest + age_youngest + day + shopping_pt + state +
-                  Quoted_F_minus2 + Quoted_F_minus3 + Quoted_F_minus4  + group_size + homeowner + married_couple
+                  Quoted_F_minus2 + Quoted_F_minus3 + Quoted_F_minus4 + group_size + homeowner + married_couple
                 , data = train.purchase.m.knn, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 5)
 
+knnFit
 
-# Resampling results across tuning parameters:
-#  
-#   k   Accuracy   Kappa    
-# 5  0.9002689  0.8553355
-# 7  0.9014785  0.8570107
-# 9  0.9016983  0.8572941
-# 11  0.9003789  0.8553429
-# 13  0.9002689  0.8551259
+#  k   RMSE       Rsquared 
+#   5  0.4171145  0.8063309
+#   7  0.4112254  0.8114590
+#   9  0.4089547  0.8135273
+#  11  0.4075037  0.8149351
+#  13  0.4071391  0.8153405
 # 
-# Accuracy was used to select the optimal model using  the largest value.
-# The final value used for the model was k = 9. 
+#RMSE was used to select the optimal model using  the smallest value.
+#The final value used for the model was k = 13.  
 
-knnPredict <- predict(knnFit,newdata = train.purchase.m[validSubset,])
+knnPredict <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part!="valid",])
+knnPredict
 
+### Define KNN training and test sets
+knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c('lastQuoted_F', 'risk_factor_imp','car_age', 'car_value','cost','age_oldest','age_youngest','day','shopping_pt','state',
+                                                                           'Quoted_F_minus2','Quoted_F_minus3','Quoted_F_minus4','group_size','homeowner','married_couple')]
+knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c('lastQuoted_F', 'risk_factor_imp','car_age', 'car_value','cost','age_oldest','age_youngest','day','shopping_pt','state',
+                                                                       'Quoted_F_minus2','Quoted_F_minus3','Quoted_F_minus4','group_size','homeowner','married_couple')]
 
-knn.trainLabels.F <- train.purchase.m.knn[,c('F')]
-knn.testLabels.F <- train.purchase.m[validSubset,c('F')]
-
-knn.training <- train.purchase.m.knn[train.purchase.m.knn$part=="train", c(8,9,10,12,13,14,15,16,17)]
-knn.test <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", c(8,9,10,12,13,14,15,16,17)]
 View(knn.training)
+knn.trainLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="train", 23]
+knn.testLabels <- train.purchase.m.knn[train.purchase.m.knn$part=="valid", 23]
 
-summary(knn.testLabels.F)
+colSums(is.na(knn.training))[colSums(is.na(knn.training)) > 0]
+colSums(is.na(knn.test))[colSums(is.na(knn.test)) > 0]
+
+table(knn.trainLabels)
+table(knn.testLabels)
+
 ### Building classifier 
-knn_pred <- knn(train = knn.training, test = knn.test, cl = knn.trainLabels.F, k=9)
-knn_pred
+knn.fit <- knn(train= knn.training, test= knn.test, cl = knn.trainLabels, k=13, prob=TRUE) #, l=0, prob=TRUE, use.all = TRUE)
+
+knn.fit
+
+knn.valid <- predict(knnFit,newdata = train.purchase.m.knn[train.purchase.m.knn$part=="valid",])
+knn.valid
+
+
+plot(knn.fit)
 
 library(gmodels)
-CrossTable(x = knn.testLabels.F, y = knn_pred, prop.chisq=FALSE)
-#Error in CrossTable(x = knn.testLabels.F, y = knn_pred, prop.chisq = FALSE) : 
-#  x and y must have the same length
+CrossTable(x = knn.testLabels, y = knn.fit, prop.chisq=FALSE)
+
+#training
+table(round(knnPredict), knn.trainLabels)
+
+#Check the misclassification rate
+error.knn.F <- round(mean(knnPredict!=knn.trainLabels),4)
+error.knn.F 
+
+confusionMatrix(round(knnPredict),knn.trainLabels)
+# Kappa 0.8901   
+
+#validation
+table(round(knn.valid), knn.testLabels)
+
+#Check the misclassification rate
+error.knn.F <- round(mean(knn.valid!=knn.testLabels),4)
+error.knn.F 
+
+confusionMatrix(round(knn.valid),knn.testLabels)
+# Kappa 0.8897  
 
 ####################
 # RandomForest *F*
