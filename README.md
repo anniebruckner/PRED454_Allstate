@@ -1,2 +1,2 @@
 # PRED454_Allstate
-Final Project for PRED 454: Allstate Prediction Challenge
+Using Kaggle's Allstate competition to develop multiple machine learning models to predict a customer’s policy purchase based on their shopping and quote history
